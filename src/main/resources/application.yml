@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: med-reconciliation-app
+  datasource:
+    url: jdbc:postgresql://localhost:5432/med_reconciliation_app
+    username: med_reconciliation_appuser
+    password: medreconuser
+    driver-class-name: org.postgresql.Driver

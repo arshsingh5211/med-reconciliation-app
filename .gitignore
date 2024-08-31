@@ -1,0 +1,77 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# IntelliJ IDEA specific folders
+out/
+*.log
+
+# STS (Spring Tool Suite)
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans/
+.sts4-cache/
+
+# VS Code
+.vscode/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# Eclipse
+.classpath
+.project
+.settings/
+target/
+bin/
+
+# Logs
+*.log
+
+# Operating system files (macOS)
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# Icon must end with two \r
+Icon
+
+# Files that might appear when opening a Mac store folder locally
+.Spotlight-V100
+.Trashes
+
+# General backups
+*.swp
+*.swo
+*~
+*.bak
+
+# Build directories
+/build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Miscellaneous
+*.env
+*.backup
+*.tmp
+*.temp
+.DS_Store
