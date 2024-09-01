@@ -85,4 +85,32 @@ CREATE TABLE AuditLog (
     CONSTRAINT PK_auditlog PRIMARY KEY (log_id)
 );
 
+-- Insert test data into Patient table
+INSERT INTO Patient (first_name, last_name, dob, primary_doctor, diseases, emergency_contact_name, emergency_contact_phone)
+VALUES
+('Bruce', 'Wayne', '1939-05-01', 'Dr. Leslie Thompkins', 'PTSD', 'Alfred Pennyworth', '555-0001'),
+('Peter', 'Parker', '1962-08-10', 'Dr. Curt Connors', 'Spider Bite Mutation', 'Aunt May', '555-0002'),
+('Diana', 'Prince', '1941-10-21', 'Dr. Julia Kapatelis', 'None', 'Steve Trevor', '555-0003'),
+('Clark', 'Kent', '1938-06-01', 'Dr. Emil Hamilton', 'Kryptonian Physiology', 'Lois Lane', '555-0004');
+
+-- Insert test data into Medication table
+INSERT INTO Medication (name, dosage, frequency, patient_id)
+VALUES
+('Battranquil', '50 mg', 'Twice a day', 1),  -- Bruce Wayne
+('Websilin', '200 mg', 'Once a day', 2),    -- Peter Parker
+('Amazonian Elixir', '5 ml', 'Once a week', 3),  -- Diana Prince
+('Kryptoplex', '1000 mg', 'Once a month', 4); -- Clark Kent
+
+-- Insert test data into Interaction table
+INSERT INTO Interaction (medication_a_id, medication_b_id, severity, description)
+VALUES
+(1, 2, 'moderate', 'Battranquil may interact with Websilin, causing drowsiness.'),
+(3, 4, 'severe', 'Amazonian Elixir and Kryptoplex should not be taken together.');
+
+-- Insert test data into AuditLog table
+INSERT INTO AuditLog (entity_type, entity_id, action, changed_by, change_details)
+VALUES
+('Patient', 1, 'INSERT', 'system', 'Initial data load for Bruce Wayne'),
+('Medication', 1, 'INSERT', 'system', 'Initial data load for Battranquil');
+
 COMMIT TRANSACTION;

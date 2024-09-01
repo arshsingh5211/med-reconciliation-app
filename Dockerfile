@@ -1,5 +1,3 @@
 FROM openjdk:17-jdk-slim
-VOLUME /tmp
-ARG JAR_FILE=target/med-reconciliation-app.jar
-COPY ${JAR_FILE} app.jar
-ENTRYPOINT ["java","-jar","/app.jar"]
+COPY target/med-reconciliation-app-0.0.1-SNAPSHOT.jar app.jar
+ENTRYPOINT ["java", "-jar", "app.jar"]
