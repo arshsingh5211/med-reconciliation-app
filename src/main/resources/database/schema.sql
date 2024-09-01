@@ -12,7 +12,7 @@ CREATE SEQUENCE seq_patient_id
 
 -- Patient Table
 CREATE TABLE Patient (
-    patient_id int DEFAULT nextval('seq_patient_id'::regclass) NOT NULL,
+    patient_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     first_name varchar(50) NOT NULL,
     last_name varchar(50) NOT NULL,
     dob DATE,
@@ -20,10 +20,14 @@ CREATE TABLE Patient (
     diseases TEXT,
     emergency_contact_name varchar(100),
     emergency_contact_phone varchar(15),
+    phone_number varchar(15),
+    street_address varchar(100),
+    city varchar(50),
+    state varchar(20),
+    zip_code varchar(10),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT PK_patient PRIMARY KEY (patient_id)
-);
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
 
 -- Sequence for Medication IDs
 CREATE SEQUENCE seq_medication_id
@@ -38,7 +42,7 @@ CREATE TABLE Medication (
     name varchar(100) NOT NULL,
     dosage varchar(50),
     frequency varchar(50),
-    patient_id int NOT NULL,
+    patient_id UUID NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_medication PRIMARY KEY (medication_id),
@@ -77,12 +81,40 @@ CREATE SEQUENCE seq_auditlog_id
 CREATE TABLE AuditLog (
     log_id int DEFAULT nextval('seq_auditlog_id'::regclass) NOT NULL,
     entity_type varchar(50) NOT NULL,
-    entity_id int NOT NULL,
+    entity_id UUID NOT NULL,
     action varchar(10) NOT NULL,
     changed_by varchar(100),
     change_details TEXT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_auditlog PRIMARY KEY (log_id)
 );
+
+-- Insert test data into Patient table
+INSERT INTO Patient (first_name, last_name, dob, primary_doctor, diseases, emergency_contact_name, emergency_contact_phone)
+VALUES
+('Bruce', 'Wayne', '1939-05-01', 'Dr. Leslie Thompkins', 'PTSD', 'Alfred Pennyworth', '555-0001'),
+('Peter', 'Parker', '1962-08-10', 'Dr. Curt Connors', 'Spider Bite Mutation', 'Aunt May', '555-0002'),
+('Diana', 'Prince', '1941-10-21', 'Dr. Julia Kapatelis', 'None', 'Steve Trevor', '555-0003'),
+('Clark', 'Kent', '1938-06-01', 'Dr. Emil Hamilton', 'Kryptonian Physiology', 'Lois Lane', '555-0004');
+
+-- Insert test data into Medication table
+INSERT INTO Medication (name, dosage, frequency, patient_id)
+VALUES
+('Battranquil', '50 mg', 'Twice a day', (SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne')),
+('Websilin', '200 mg', 'Once a day', (SELECT patient_id FROM Patient WHERE first_name = 'Peter' AND last_name = 'Parker')),
+('Amazonian Elixir', '5 ml', 'Once a week', (SELECT patient_id FROM Patient WHERE first_name = 'Diana' AND last_name = 'Prince')),
+('Kryptoplex', '1000 mg', 'Once a month', (SELECT patient_id FROM Patient WHERE first_name = 'Clark' AND last_name = 'Kent'));
+
+-- Insert test data into Interaction table
+INSERT INTO Interaction (medication_a_id, medication_b_id, severity, description)
+VALUES
+(1, 2, 'moderate', 'Battranquil may interact with Websilin, causing drowsiness.'),
+(3, 4, 'severe', 'Amazonian Elixir and Kryptoplex should not be taken together.');
+
+-- Insert test data into AuditLog table
+INSERT INTO AuditLog (entity_type, entity_id, action, changed_by, change_details)
+VALUES
+('Patient', (SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne'), 'INSERT', 'system', 'Initial data load for Bruce Wayne'),
+('Medication', (SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne'), 'INSERT', 'system', 'Initial data load for Battranquil');
 
 COMMIT TRANSACTION;
