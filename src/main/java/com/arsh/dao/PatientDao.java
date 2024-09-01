@@ -1,13 +1,12 @@
 package com.arsh.dao;
 
-import com.arsh.model.Patient;
-
+import com.arsh.dto.PatientDTO;
 import java.util.List;
 import java.util.UUID;
 
 public interface PatientDao {
-    Patient getPatient(UUID patientId);
-    List<Patient> getAllPatients();
-    void savePatient(Patient patient);
+    PatientDTO getPatient(UUID patientId);
+    List<PatientDTO> getAllPatients();
+    void savePatient(PatientDTO patientDTO);
     void deletePatient(UUID patientId);
 }
