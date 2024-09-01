@@ -3,6 +3,7 @@ package com.arsh.controller;
 import com.arsh.model.Medication;
 import com.arsh.service.MedicationService;
 import com.arsh.service.OpenFdaService;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,8 +25,8 @@ public class MedicationController {
     }
 
     @GetMapping("/{name}")
-    public ResponseEntity<List<String>> getMedicationInfo(@PathVariable String name) {
-        List<String> medicationInfo = openFdaService.getMedicationInfo(name);
+    public ResponseEntity<JsonNode> getMedicationInfo(@PathVariable String name) {
+        JsonNode medicationInfo = openFdaService.getMedicationInfo(name);
         return ResponseEntity.ok(medicationInfo);
     }
 
