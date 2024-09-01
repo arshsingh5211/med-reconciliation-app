@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
@@ -19,7 +20,7 @@ public class PatientService {
         this.patientDao = patientDao;
     }
 
-    public Patient getPatient(int patientId) {
+    public Patient getPatient(UUID patientId) {
         return patientDao.getPatient(patientId);
     }
 
@@ -31,7 +32,7 @@ public class PatientService {
         patientDao.savePatient(patient);
     }
 
-    public void deletePatient(int patientId) {
+    public void deletePatient(UUID patientId) {
         patientDao.deletePatient(patientId);
     }
 }

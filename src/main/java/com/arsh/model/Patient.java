@@ -5,13 +5,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Date;
+import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class Patient {
 
-    private int patientId;
+    private UUID patientId;
     private String firstName;
     private String lastName;
     private Date dob;

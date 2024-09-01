@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public class JdbcPatientDao implements PatientDao {
@@ -20,7 +21,7 @@ public class JdbcPatientDao implements PatientDao {
     }
 
     @Override
-    public Patient getPatient(int patientId) {
+    public Patient getPatient(UUID patientId) {
         String sql = "SELECT patient_id, first_name, last_name, dob, primary_doctor, diseases, " +
                      "emergency_contact_name, emergency_contact_phone " +
                      "FROM Patient WHERE patient_id = ?";
@@ -45,7 +46,7 @@ public class JdbcPatientDao implements PatientDao {
     }
 
     @Override
-    public void deletePatient(int patientId) {
+    public void deletePatient(UUID patientId) {
         String sql = "DELETE FROM Patient WHERE patient_id = ?";
         jdbcTemplate.update(sql, patientId);
     }
@@ -55,10 +56,15 @@ public class JdbcPatientDao implements PatientDao {
         @Override
         public Patient mapRow(ResultSet rs, int rowNum) throws SQLException {
             Patient patient = new Patient();
-            patient.setPatientId(rs.getInt("patient_id"));
+            patient.setPatientId(UUID.fromString(rs.getString("patient_id")));
             patient.setFirstName(rs.getString("first_name"));
             patient.setLastName(rs.getString("last_name"));
             patient.setDob(rs.getDate("dob"));
+            patient.setPhoneNumber("phone_number");
+            patient.setStreetAddress("street_address");
+            patient.setCity("city");
+            patient.setState("state");
+            patient.setZipCode("zip_code");
             patient.setPrimaryDoctor(rs.getString("primary_doctor"));
             patient.setDiseases(rs.getString("diseases"));
             patient.setEmergencyContactName(rs.getString("emergency_contact_name"));
