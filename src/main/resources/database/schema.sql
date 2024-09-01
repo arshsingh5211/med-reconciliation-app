@@ -20,6 +20,11 @@ CREATE TABLE Patient (
     diseases TEXT,
     emergency_contact_name varchar(100),
     emergency_contact_phone varchar(15),
+    phone_number varchar(15),
+    street_address varchar(100),
+    city varchar(50),
+    state varchar(20),
+    zip_code varchar(10),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT PK_patient PRIMARY KEY (patient_id)

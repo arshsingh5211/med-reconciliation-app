@@ -15,6 +15,11 @@ public class Patient {
     private String firstName;
     private String lastName;
     private Date dob;
+    private String phoneNumber;
+    private String streetAddress;
+    private String city;
+    private String state;
+    private String zipCode;
     private String primaryDoctor;
     private String diseases;
     private String emergencyContactName;
