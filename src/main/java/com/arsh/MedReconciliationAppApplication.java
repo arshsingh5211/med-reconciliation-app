@@ -1,4 +1,4 @@
-package com.arsh.med_reconciliation_app;
+package com.arsh;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
