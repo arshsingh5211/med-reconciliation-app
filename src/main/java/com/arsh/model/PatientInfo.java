@@ -20,6 +20,7 @@ public class PatientInfo {
     private String city;
     private String state;
     private String zipCode;
+    private Doctor primaryDoctor;
     private String emergencyContactName;
     private String emergencyContactPhone;
 }

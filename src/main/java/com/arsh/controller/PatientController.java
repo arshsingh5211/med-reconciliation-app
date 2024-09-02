@@ -1,6 +1,6 @@
 package com.arsh.controller;
 
-import com.arsh.model.Patient;
+import com.arsh.dto.PatientDTO;
 import com.arsh.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,24 +22,24 @@ public class PatientController {
     }
 
     @GetMapping("/{patientId}")
-    public ResponseEntity<Patient> getPatient(@PathVariable UUID patientId) {
-        Patient patient = patientService.getPatient(patientId);
-        if (patient != null) {
-            return new ResponseEntity<>(patient, HttpStatus.OK);
+    public ResponseEntity<PatientDTO> getPatient(@PathVariable UUID patientId) {
+        PatientDTO patientDTO = patientService.getPatient(patientId);
+        if (patientDTO != null) {
+            return new ResponseEntity<>(patientDTO, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
     @GetMapping
-    public ResponseEntity<List<Patient>> getAllPatients() {
-        List<Patient> patients = patientService.getAllPatients();
+    public ResponseEntity<List<PatientDTO>> getAllPatients() {
+        List<PatientDTO> patients = patientService.getAllPatients();
         return new ResponseEntity<>(patients, HttpStatus.OK);
     }
 
     @PostMapping
-    public ResponseEntity<Void> savePatient(@RequestBody Patient patient) {
-        patientService.savePatient(patient);
+    public ResponseEntity<Void> savePatient(@RequestBody PatientDTO patientDTO) {
+        patientService.savePatient(patientDTO);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
 

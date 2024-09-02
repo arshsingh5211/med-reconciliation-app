@@ -1,7 +1,7 @@
 package com.arsh.service;
 
 import com.arsh.dao.PatientDao;
-import com.arsh.model.Patient;
+import com.arsh.dto.PatientDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,16 +21,16 @@ public class PatientService {
         this.patientDao = patientDao;
     }
 
-    public Patient getPatient(UUID patientId) {
+    public PatientDTO getPatient(UUID patientId) {
         return patientDao.getPatient(patientId);
     }
 
-    public List<Patient> getAllPatients() {
+    public List<PatientDTO> getAllPatients() {
         return patientDao.getAllPatients();
     }
 
-    public void savePatient(Patient patient) {
-        patientDao.savePatient(patient);
+    public void savePatient(PatientDTO patientDTO) {
+        patientDao.savePatient(patientDTO);
     }
 
     public void deletePatient(UUID patientId) {

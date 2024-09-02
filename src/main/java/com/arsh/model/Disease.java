@@ -13,3 +13,5 @@ public class Disease {
     private String name;
     private String severity;  // Mild, Moderate, Severe, etc.
 }
+
+// TODO: i want to consume from some api so there is a link to some official documentation about whatever disease
