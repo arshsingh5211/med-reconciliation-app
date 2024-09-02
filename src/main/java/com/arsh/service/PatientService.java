@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -38,32 +37,32 @@ public class PatientService {
         patientDao.deletePatient(patientId);
     }
 
-    public void updatePatient(UUID patientId, Map<String, Object> updates) {
-        Patient existingPatient = patientDao.getPatient(patientId);
-        if (existingPatient == null) {
-            throw new IllegalArgumentException("Patient with ID " + patientId + " not found.");
-        }
-
-        updates.forEach((key, value) -> {
-            switch (key) {
-                case "firstName" -> existingPatient.setFirstName(validateString((String) value));
-                case "lastName" -> existingPatient.setLastName(validateString((String) value));
-                case "dob" -> existingPatient.setDob(validateDate((String) value));
-                case "phoneNumber" -> existingPatient.setPhoneNumber(validatePhoneNumber((String) value));
-                case "streetAddress" -> existingPatient.setStreetAddress(validateString((String) value));
-                case "city" -> existingPatient.setCity(validateString((String) value));
-                case "state" -> existingPatient.setState(validateString((String) value));
-                case "zipCode" -> existingPatient.setZipCode(validateString((String) value));
-                case "primaryDoctor" -> existingPatient.setPrimaryDoctor(validateString((String) value));
-                case "diseases" -> existingPatient.setDiseases(validateString((String) value));
-                case "emergencyContactName" -> existingPatient.setEmergencyContactName(validateString((String) value));
-                case "emergencyContactPhone" -> existingPatient.setEmergencyContactPhone(validatePhoneNumber((String) value));
-                default -> throw new IllegalArgumentException("Invalid field: " + key);
-            }
-        });
-
-        patientDao.savePatient(existingPatient);
-    }
+//    public void updatePatient(UUID patientId, Map<String, Object> updates) {
+//        Patient existingPatient = patientDao.getPatient(patientId);
+//        if (existingPatient == null) {
+//            throw new IllegalArgumentException("Patient with ID " + patientId + " not found.");
+//        }
+//
+//        updates.forEach((key, value) -> {
+//            switch (key) {
+//                case "firstName" -> existingPatient.setFirstName(validateString((String) value));
+//                case "lastName" -> existingPatient.setLastName(validateString((String) value));
+//                case "dob" -> existingPatient.setDob(validateDate((String) value));
+//                case "phoneNumber" -> existingPatient.setPhoneNumber(validatePhoneNumber((String) value));
+//                case "streetAddress" -> existingPatient.setStreetAddress(validateString((String) value));
+//                case "city" -> existingPatient.setCity(validateString((String) value));
+//                case "state" -> existingPatient.setState(validateString((String) value));
+//                case "zipCode" -> existingPatient.setZipCode(validateString((String) value));
+//                case "primaryDoctor" -> existingPatient.setPrimaryDoctor(validateString((String) value));
+//                case "diseases" -> existingPatient.setDiseases(validateString((String) value));
+//                case "emergencyContactName" -> existingPatient.setEmergencyContactName(validateString((String) value));
+//                case "emergencyContactPhone" -> existingPatient.setEmergencyContactPhone(validatePhoneNumber((String) value));
+//                default -> throw new IllegalArgumentException("Invalid field: " + key);
+//            }
+//        });
+//
+//        patientDao.savePatient(existingPatient);
+//    }
 
     private String validateString(String value) {
         if (value == null || value.trim().isEmpty()) {

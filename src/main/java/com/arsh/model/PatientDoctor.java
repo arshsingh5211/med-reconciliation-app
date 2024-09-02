@@ -10,7 +10,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PatientDoctor {
-    private UUID patientDoctorId;
+    private int patientDoctorId;
     private UUID patientId;
     private UUID doctorId;
     private String specialty; // Primary Care, Specialist, etc.

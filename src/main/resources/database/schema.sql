@@ -1,22 +1,59 @@
 BEGIN TRANSACTION;
 
-DROP TABLE IF EXISTS Patient, PatientInfo, Medication, Interaction, Doctor, PatientDoctor, PatientDisease, AuditLog CASCADE;
-DROP SEQUENCE IF EXISTS seq_medication_id, seq_interaction_id, seq_auditlog_id;
+DROP TABLE IF EXISTS Patient, PatientInfo, Medication, Interaction, Doctor, PatientDoctor, PatientDisease, AuditLog, Disease CASCADE;
+DROP SEQUENCE IF EXISTS seq_medication_id, seq_interaction_id, seq_auditlog_id, seq_patient_disease_id, seq_patient_doctor_id, seq_patient_medication_id, seq_disease_id, seq_patient_info_id;
 
--- Create sequences
+-- Sequence for Medication IDs
 CREATE SEQUENCE seq_medication_id
   INCREMENT BY 1
   NO MAXVALUE
   NO MINVALUE
   CACHE 1;
 
+-- Sequence for Interaction IDs
 CREATE SEQUENCE seq_interaction_id
   INCREMENT BY 1
   NO MAXVALUE
   NO MINVALUE
   CACHE 1;
 
+-- Sequence for AuditLog IDs
 CREATE SEQUENCE seq_auditlog_id
+  INCREMENT BY 1
+  NO MAXVALUE
+  NO MINVALUE
+  CACHE 1;
+
+-- Sequence for PatientDisease IDs
+CREATE SEQUENCE seq_patient_disease_id
+  INCREMENT BY 1
+  NO MAXVALUE
+  NO MINVALUE
+  CACHE 1;
+
+-- Sequence for PatientDoctor IDs
+CREATE SEQUENCE seq_patient_doctor_id
+  INCREMENT BY 1
+  NO MAXVALUE
+  NO MINVALUE
+  CACHE 1;
+
+-- Sequence for PatientMedication IDs
+CREATE SEQUENCE seq_patient_medication_id
+  INCREMENT BY 1
+  NO MAXVALUE
+  NO MINVALUE
+  CACHE 1;
+
+-- Sequence for Disease IDs
+CREATE SEQUENCE seq_disease_id
+  INCREMENT BY 1
+  NO MAXVALUE
+  NO MINVALUE
+  CACHE 1;
+
+-- Sequence for PatientInfo IDs
+CREATE SEQUENCE seq_patient_info_id
   INCREMENT BY 1
   NO MAXVALUE
   NO MINVALUE
@@ -33,7 +70,7 @@ CREATE TABLE Patient (
 
 -- PatientInfo Table
 CREATE TABLE PatientInfo (
-    info_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    info_id int DEFAULT nextval('seq_patient_info_id'::regclass) PRIMARY KEY,
     patient_id UUID NOT NULL,
     dob DATE,
     phone_number varchar(15),
@@ -65,10 +102,10 @@ CREATE TABLE Doctor (
 
 -- PatientDoctor Table
 CREATE TABLE PatientDoctor (
-    patient_doctor_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    patient_doctor_id int DEFAULT nextval('seq_patient_doctor_id'::regclass) PRIMARY KEY,
     patient_id UUID NOT NULL,
     doctor_id UUID NOT NULL,
-    type_of_care varchar(50),
+    specialty varchar(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT FK_patient_doctor_patient FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
@@ -77,18 +114,18 @@ CREATE TABLE PatientDoctor (
 
 -- Disease Table
 CREATE TABLE Disease (
-    disease_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    disease_id int DEFAULT nextval('seq_disease_id'::regclass) PRIMARY KEY,
     name varchar(100) NOT NULL,
-    severity varchar(20),
+    severity varchar(20), -- Mild, Moderate, Severe, etc.
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- PatientDisease Table
 CREATE TABLE PatientDisease (
-    patient_disease_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    patient_disease_id int DEFAULT nextval('seq_patient_disease_id'::regclass) PRIMARY KEY,
     patient_id UUID NOT NULL,
-    disease_id UUID NOT NULL,
+    disease_id int NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT FK_patient_disease_patient FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
@@ -107,7 +144,7 @@ CREATE TABLE Medication (
 
 -- PatientMedication Table (Junction Table)
 CREATE TABLE PatientMedication (
-    patient_medication_id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    patient_medication_id int DEFAULT nextval('seq_patient_medication_id'::regclass) PRIMARY KEY,
     patient_id UUID NOT NULL,
     medication_id int NOT NULL,
     dosage varchar(50),
@@ -147,10 +184,10 @@ CREATE TABLE AuditLog (
 -- Insert test data into Patient table
 INSERT INTO Patient (first_name, last_name)
 VALUES
-('Bruce', 'Wayne'),
-('Peter', 'Parker'),
-('Diana', 'Prince'),
-('Clark', 'Kent');
+(gen_random_uuid(), 'Bruce', 'Wayne'),
+(gen_random_uuid(), 'Peter', 'Parker'),
+(gen_random_uuid(), 'Diana', 'Prince'),
+(gen_random_uuid(), 'Clark', 'Kent');
 
 -- Insert test data into PatientInfo table
 INSERT INTO PatientInfo (patient_id, dob, phone_number, street_address, city, state, zip_code, emergency_contact_name, emergency_contact_phone)
@@ -169,7 +206,7 @@ VALUES
 ('Emil', 'Hamilton', 'Physicist', '555-4004', '4 Science Rd', 'Metropolis', 'NY', '10001');
 
 -- Insert test data into PatientDoctor table
-INSERT INTO PatientDoctor (patient_id, doctor_id, type_of_care)
+INSERT INTO PatientDoctor (patient_id, doctor_id, specialty)
 VALUES
 ((SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne'), (SELECT doctor_id FROM Doctor WHERE first_name = 'Leslie' AND last_name = 'Thompkins'), 'Primary Care'),
 ((SELECT patient_id FROM Patient WHERE first_name = 'Peter' AND last_name = 'Parker'), (SELECT doctor_id FROM Doctor WHERE first_name = 'Curt' AND last_name = 'Connors'), 'Primary Care'),

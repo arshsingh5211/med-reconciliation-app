@@ -12,8 +12,8 @@ import java.util.UUID;
 @AllArgsConstructor
 public class PatientInfo {
 
-    private UUID infoId;
-    private UUID patientId;  // Foreign key linking back to the Patient
+    private int infoId;
+    private UUID patientId;
     private Date dob;
     private String phoneNumber;
     private String streetAddress;
