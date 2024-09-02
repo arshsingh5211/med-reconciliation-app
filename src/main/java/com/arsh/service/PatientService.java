@@ -40,25 +40,29 @@ public class PatientService {
 
     public void updatePatient(UUID patientId, Map<String, Object> updates) {
         Patient existingPatient = patientDao.getPatient(patientId);
-        if (existingPatient != null) {
-            updates.forEach((key, value) -> {
-                switch (key) {
-                    case "firstName" -> existingPatient.setFirstName((String) value);
-                    case "lastName" -> existingPatient.setLastName((String) value);
-                    case "dob" -> existingPatient.setDob(Date.valueOf((String) value));
-                    case "phoneNumber" -> existingPatient.setPhoneNumber((String) value);
-                    case "streetAddress" -> existingPatient.setStreetAddress((String) value);
-                    case "city" -> existingPatient.setCity((String) value);
-                    case "state" -> existingPatient.setState((String) value);
-                    case "zipCode" -> existingPatient.setZipCode((String) value);
-                    case "primaryDoctor" -> existingPatient.setPrimaryDoctor((String) value);
-                    case "diseases" -> existingPatient.setDiseases((String) value);
-                    case "emergencyContactName" -> existingPatient.setEmergencyContactName((String) value);
-                    case "emergencyContactPhone" -> existingPatient.setEmergencyContactPhone((String) value);
-                }
-            });
-            patientDao.savePatient(existingPatient); // This will perform the update
+        if (existingPatient == null) {
+            throw new IllegalArgumentException("Patient with ID " + patientId + " not found.");
         }
+
+        updates.forEach((key, value) -> {
+            switch (key) {
+                case "firstName" -> existingPatient.setFirstName(validateString((String) value));
+                case "lastName" -> existingPatient.setLastName(validateString((String) value));
+                case "dob" -> existingPatient.setDob(validateDate((String) value));
+                case "phoneNumber" -> existingPatient.setPhoneNumber(validatePhoneNumber((String) value));
+                case "streetAddress" -> existingPatient.setStreetAddress(validateString((String) value));
+                case "city" -> existingPatient.setCity(validateString((String) value));
+                case "state" -> existingPatient.setState(validateString((String) value));
+                case "zipCode" -> existingPatient.setZipCode(validateString((String) value));
+                case "primaryDoctor" -> existingPatient.setPrimaryDoctor(validateString((String) value));
+                case "diseases" -> existingPatient.setDiseases(validateString((String) value));
+                case "emergencyContactName" -> existingPatient.setEmergencyContactName(validateString((String) value));
+                case "emergencyContactPhone" -> existingPatient.setEmergencyContactPhone(validatePhoneNumber((String) value));
+                default -> throw new IllegalArgumentException("Invalid field: " + key);
+            }
+        });
+
+        patientDao.savePatient(existingPatient);
     }
 
     private String validateString(String value) {
