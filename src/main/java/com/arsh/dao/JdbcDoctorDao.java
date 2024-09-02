@@ -11,15 +11,16 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 @Repository
-public class JdbcDoctorDao {
+public class JdbcDoctorDao implements DoctorDao{
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
     public JdbcDoctorDao (JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
-    private Doctor getDoctorById(UUID doctorId) {
-        String sql = "SELECT * FROM doctors WHERE doctor_id = ?";
+
+    public Doctor getDoctorById(UUID doctorId) {
+        String sql = "SELECT * FROM doctor WHERE doctor_id = ?";
         return jdbcTemplate.queryForObject(sql, new Object[]{doctorId}, new DoctorRowMapper());
     }
 
