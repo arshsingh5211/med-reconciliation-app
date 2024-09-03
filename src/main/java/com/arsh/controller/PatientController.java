@@ -1,9 +1,12 @@
 package com.arsh.controller;
 
+import com.arsh.dto.MedicationDTO;
 import com.arsh.dto.PatientDTO;
+import com.arsh.model.MedicationInfo;
+import com.arsh.model.MedicationList;
+import com.arsh.service.MedicationService;
 import com.arsh.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,43 +18,78 @@ import java.util.UUID;
 public class PatientController {
 
     private final PatientService patientService;
+    private final MedicationService medicationService;
 
     @Autowired
-    public PatientController(PatientService patientService) {
+    public PatientController(PatientService patientService, MedicationService medicationService) {
         this.patientService = patientService;
+        this.medicationService = medicationService;
     }
+
+    // Patient CRUD endpoints
 
     @GetMapping("/{patientId}")
     public ResponseEntity<PatientDTO> getPatient(@PathVariable UUID patientId) {
-        PatientDTO patientDTO = patientService.getPatient(patientId);
-        if (patientDTO != null) {
-            return new ResponseEntity<>(patientDTO, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        return ResponseEntity.ok(patientService.getPatient(patientId));
     }
 
     @GetMapping
     public ResponseEntity<List<PatientDTO>> getAllPatients() {
-        List<PatientDTO> patients = patientService.getAllPatients();
-        return new ResponseEntity<>(patients, HttpStatus.OK);
+        return ResponseEntity.ok(patientService.getAllPatients());
     }
 
     @PostMapping
     public ResponseEntity<Void> savePatient(@RequestBody PatientDTO patientDTO) {
         patientService.savePatient(patientDTO);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        return ResponseEntity.ok().build();
     }
-
-//    @PatchMapping("/{id}")
-//    public ResponseEntity<Void> updatePatient(@PathVariable UUID id, @RequestBody Map<String, Object> updates) {
-//        patientService.updatePatient(id, updates);
-//        return ResponseEntity.noContent().build();
-//    }
 
     @DeleteMapping("/{patientId}")
     public ResponseEntity<Void> deletePatient(@PathVariable UUID patientId) {
         patientService.deletePatient(patientId);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        return ResponseEntity.ok().build();
+    }
+
+    // Medication CRUD endpoints for a specific patient
+
+    // todo: get specific medication info from a med list
+    @GetMapping("/{patientId}/medications/{medicationInfoId}")
+    public ResponseEntity<MedicationInfo> getMedicationInfo(
+            @PathVariable UUID patientId,
+            @PathVariable int medicationInfoId) {
+        MedicationInfo medicationInfo = medicationService.getMedicationInfo(medicationInfoId);
+        return ResponseEntity.ok(medicationInfo);
+    }
+
+    @GetMapping("/{patientId}/medications")
+    public ResponseEntity<MedicationList> getMedicationListByPatientId(@PathVariable UUID patientId) {
+        return ResponseEntity.ok(medicationService.getMedicationListByPatientId(patientId));
+    }
+
+    @PostMapping("/{patientId}/medications")
+    public ResponseEntity<Void> addMedicationToPatientList(
+            @PathVariable UUID patientId,
+            @RequestBody MedicationDTO medicationDTO) {
+    medicationService.saveMedicationToMedicationList(patientId, medicationDTO);
+        return ResponseEntity.ok().build();
+    }
+
+    // todo: delete med from med list
+    // todo: update med on med list
+
+    @PutMapping("/{patientId}/medications/{medicationInfoId}")
+    public ResponseEntity<Void> updateMedicationInfo(
+            @PathVariable UUID patientId,
+            @PathVariable int medicationInfoId,
+            @RequestBody MedicationDTO updatedInfo) {
+        medicationService.updateMedicationInfo(medicationInfoId, updatedInfo);
+        return ResponseEntity.ok().build();
+    }
+
+
+    @DeleteMapping("/{patientId}/medications/{medicationInfoId}")
+    public ResponseEntity<Void> deleteMedicationInfo(@PathVariable UUID patientId, @PathVariable int medicationInfoId) {
+        medicationService.deleteMedicationInfo(medicationInfoId);
+        return ResponseEntity.ok().build();
     }
 }
