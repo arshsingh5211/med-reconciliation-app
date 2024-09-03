@@ -1,6 +1,8 @@
 package com.arsh.controller;
 
 import com.arsh.dto.PatientDTO;
+import com.arsh.model.Medication;
+import com.arsh.service.MedicationService;
 import com.arsh.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,10 +17,12 @@ import java.util.UUID;
 public class PatientController {
 
     private final PatientService patientService;
+    private final MedicationService medicationService;
 
     @Autowired
-    public PatientController(PatientService patientService) {
+    public PatientController(PatientService patientService, MedicationService medicationService) {
         this.patientService = patientService;
+        this.medicationService = medicationService;
     }
 
     @GetMapping("/{patientId}")
@@ -53,5 +57,20 @@ public class PatientController {
     public ResponseEntity<Void> deletePatient(@PathVariable UUID patientId) {
         patientService.deletePatient(patientId);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @GetMapping("/{patientId}/medications")
+    public ResponseEntity<List<Medication>> getMedicationsByPatientId(@PathVariable UUID patientId) {
+        List<Medication> medications = medicationService.getMedicationListByPatientId(patientId);
+        if (medications.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+        return new ResponseEntity<>(medications, HttpStatus.OK);
+    }
+
+    @PostMapping("/{patientId}/medications")
+    public ResponseEntity<Void> addMedicationToPatientList(@PathVariable UUID patientId, @RequestBody Medication medication) {
+        medicationService.addMedicationToPatientList(patientId, medication);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }
