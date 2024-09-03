@@ -1,25 +1,25 @@
-package com.arsh.model;
+package com.arsh.dto;
 
+import com.arsh.enums.DrugClass;
+import com.arsh.model.Doctor;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.UUID;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class MedicationInfo {
-    private int medicationInfoId;
+// @BrandOrGeneric - should i add this here?
+public class MedicationDTO {
+    private String brandName;
+    private String genericName;
 
-    @NotNull(message = "MedicationId cannot be null")
-    private Medication medicationId;
+    @NotNull(message = "Drug class cannot be null")
+    private DrugClass drugClass;
 
-    @NotNull(message = "Patient ID cannot be null")
-    private UUID patientId;
+    @NotNull(message = "Sub-category cannot be null")
+    @Size(max = 50, message = "Sub-category must be less than or equal to 50 characters")
+    private String subCategory;
 
     @NotNull(message = "Dosage cannot be null")
     @Size(max = 50, message = "Dosage must be less than or equal to 50 characters")

@@ -60,19 +60,19 @@ public class PatientController {
             @PathVariable UUID patientId,
             @RequestBody MedicationInfo medicationInfo) {
         medicationInfo.setPatientId(patientId);
-        medicationService.addMedication(medicationInfo);
+//        medicationService.addMedication(medicationInfo);
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/{patientId}/medications/{medicationInfoId}")
-    public ResponseEntity<Void> updateMedicationInfo(@PathVariable UUID patientId, @PathVariable int medicationInfoId, @RequestBody MedicationInfo updatedInfo) {
-        medicationService.updateMedicationInfo(medicationInfoId, updatedInfo);
-        return ResponseEntity.ok().build();
-    }
+//    @PutMapping("/{patientId}/medications/{medicationInfoId}")
+//    public ResponseEntity<Void> updateMedicationInfo(@PathVariable UUID patientId, @PathVariable int medicationInfoId, @RequestBody MedicationInfo updatedInfo) {
+//        medicationService.updateMedicationInfo(medicationInfoId, updatedInfo);
+//        return ResponseEntity.ok().build();
+//    }
 
-    @DeleteMapping("/{patientId}/medications/{medicationInfoId}")
-    public ResponseEntity<Void> deleteMedicationInfo(@PathVariable UUID patientId, @PathVariable int medicationInfoId) {
-        medicationService.deleteMedicationInfo(medicationInfoId);
-        return ResponseEntity.ok().build();
-    }
+//    @DeleteMapping("/{patientId}/medications/{medicationInfoId}")
+//    public ResponseEntity<Void> deleteMedicationInfo(@PathVariable UUID patientId, @PathVariable int medicationInfoId) {
+//        medicationService.deleteMedicationInfo(medicationInfoId);
+//        return ResponseEntity.ok().build();
+//    }
 }

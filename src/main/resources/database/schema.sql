@@ -180,7 +180,7 @@ VALUES
 -- Insert test data into Medication table
 INSERT INTO Medication (brand_name, generic_name, drug_class, sub_category, is_generic)
 VALUES
-('Tylenol', 'Acetaminophen', 'Analgesic', 'Pain reliever', false),
+('Tylenol', 'Acetaminophen', 'Analgesic', 'Analgesic', false),
 ('Lipitor', 'Atorvastatin', 'Antihyperlipidemic', 'Statin', false),
 (NULL, 'Metformin', 'Antidiabetic', 'Biguanides', true),
 ('Advil', 'Ibuprofen', 'Anti-inflammatory', 'NSAID', false),

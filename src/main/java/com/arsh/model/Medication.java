@@ -1,6 +1,5 @@
 package com.arsh.model;
 
-import com.arsh.enums.DrugClass;
 import com.arsh.validation.BrandOrGeneric;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -18,11 +17,10 @@ public class Medication {
     private String genericName;
 
     @NotNull(message = "Drug class cannot be null")
-    private DrugClass drugClass;
+    private String drugClass;
 
     @NotNull(message = "Sub-category cannot be null")
     @Size(max = 50, message = "Sub-category must be less than or equal to 50 characters")
     private String subCategory;
 
-    private boolean isGeneric;
 }

@@ -7,15 +7,16 @@ import java.util.List;
 import java.util.UUID;
 
 public interface MedicationDao {
-    // Methods related to Medication (general medication data)
+    // Methods related to Medication (general medication data for testing)
     Medication getMedicationById(int medicationId);
-    List<Medication> getAllMedications();
     void saveMedication(Medication medication);
+    void deleteMedication(int medicationId);
+    List<Medication> getAllMedications();
 
     // Methods related to medication lists (patient-specific medication data)
-    MedicationInfo getMedicationInfoById(int medicationInfoId);
     List<MedicationInfo> getMedicationListByPatientId(UUID patientId);
-    void saveMedicationInfo(MedicationInfo medicationInfo);
-    void updateMedicationInfo(MedicationInfo medicationInfo);
-    void deleteMedicationInfo(int medicationInfoId);
+    void saveMedicationToMedList(MedicationInfo medicationInfo);
+    void updateMedicationOnMedList(MedicationInfo medicationInfo);
+    void deleteMedicationFromMedList(int medicationInfoId);
+    MedicationInfo getMedicationFromMedListById(int medicationInfoId);
 }

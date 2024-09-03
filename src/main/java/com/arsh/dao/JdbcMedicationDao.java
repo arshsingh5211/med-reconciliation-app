@@ -1,6 +1,5 @@
 package com.arsh.dao;
 
-import com.arsh.enums.DrugClass;
 import com.arsh.model.Doctor;
 import com.arsh.model.Medication;
 import com.arsh.model.MedicationInfo;
@@ -24,8 +23,8 @@ public class JdbcMedicationDao implements MedicationDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    // Methods for Medication (general medication data)
-
+    // -------------------------------------------------------------------
+    // Methods for Medication (general medication data mostly for testing)
     @Override
     public Medication getMedicationById(int medicationId) {
         String sql = "SELECT * FROM Medication WHERE medication_id = ?";
@@ -33,45 +32,43 @@ public class JdbcMedicationDao implements MedicationDao {
     }
 
     @Override
+    public void saveMedication(Medication medication) {
+        String sql = "INSERT INTO Medication (brand_name, generic_name, drug_class, subcategory) " +
+                "VALUES (?, ?, ?, ?)";
+        jdbcTemplate.update(sql, medication.getBrandName(), medication.getGenericName(),
+                medication.getDrugClass(), medication.getSubCategory());
+    }
+
+    @Override
+    public void deleteMedication(int medicationId) {
+        String sql = "DELETE FROM Medication WHERE medication_id = ?";
+        jdbcTemplate.update(sql, medicationId);
+    }
+
+    @Override
     public List<Medication> getAllMedications() {
         String sql = "SELECT * FROM Medication";
         return jdbcTemplate.query(sql, new MedicationRowMapper());
     }
-
-    @Override
-    public void saveMedication(Medication medication) {
-        String sql = "INSERT INTO Medication (brand_name, generic_name, drug_class, sub_category, is_generic) " +
-                "VALUES (?, ?, ?, ?, ?)";
-        jdbcTemplate.update(sql,
-                medication.getBrandName(),
-                medication.getGenericName(),
-                medication.getDrugClass().name(),
-                medication.getSubCategory(),
-                medication.isGeneric()
-        );
-    }
-
-    // Methods for MedicationInfo (patient-specific medication data)
-
-    @Override
-    public MedicationInfo getMedicationInfoById(int medicationInfoId) {
-        String sql = "SELECT * FROM MedicationInfo WHERE medication_info_id = ?";
-        return jdbcTemplate.queryForObject(sql, new MedicationInfoRowMapper(), medicationInfoId);
-    }
-
+    // -------------------------------------------------------------------
+    // Functional Methods for Manipulating Patient's Medication Lists
     @Override
     public List<MedicationInfo> getMedicationListByPatientId(UUID patientId) {
-        String sql = "SELECT * FROM MedicationInfo WHERE patient_id = ?";
+        String sql = "SELECT mi.*, m.* " +
+                "FROM MedicationInfo mi " +
+                "JOIN Medication m ON mi.medication_id = m.medication_id " +
+                "WHERE mi.patient_id = ?";
+
         return jdbcTemplate.query(sql, new MedicationInfoRowMapper(), patientId);
     }
 
     @Override
-    public void saveMedicationInfo(MedicationInfo medicationInfo) {
+    public void saveMedicationToMedList(MedicationInfo medicationInfo) {
         String sql = "INSERT INTO MedicationInfo (medication_id, patient_id, dosage, frequency, route, " +
                 "is_prn, date_started, is_current, prescribing_doctor, pharmacy, comments) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql,
-                medicationInfo.getMedication().getMedicationId(),
+                medicationInfo.getMedicationId(),
                 medicationInfo.getPatientId(),
                 medicationInfo.getDosage(),
                 medicationInfo.getFrequency(),
@@ -86,7 +83,7 @@ public class JdbcMedicationDao implements MedicationDao {
     }
 
     @Override
-    public void updateMedicationInfo(MedicationInfo medicationInfo) {
+    public void updateMedicationOnMedList(MedicationInfo medicationInfo) {
         String sql = "UPDATE MedicationInfo SET dosage = ?, frequency = ?, route = ?, is_prn = ?, " +
                 "date_started = ?, is_current = ?, prescribing_doctor = ?, pharmacy = ?, comments = ? " +
                 "WHERE medication_info_id = ?";
@@ -105,9 +102,37 @@ public class JdbcMedicationDao implements MedicationDao {
     }
 
     @Override
-    public void deleteMedicationInfo(int medicationInfoId) {
+    public void deleteMedicationFromMedList(int medicationInfoId) {
         String sql = "DELETE FROM MedicationInfo WHERE medication_info_id = ?";
         jdbcTemplate.update(sql, medicationInfoId);
+    }
+
+    @Override
+    public MedicationInfo getMedicationFromMedListById(int medicationInfoId) {
+        String sql = "SELECT * FROM MedicationInfo WHERE medication_info_id = ?";
+        return jdbcTemplate.queryForObject(sql, new MedicationInfoRowMapper(), medicationInfoId);
+    }
+
+
+
+
+
+    // -------------------------------------------------------------------
+    // HELPER METHODS ONLY
+    private Integer getMedicationIdByName(String brandName, String genericName) {
+        String sql = "SELECT medication_id FROM Medication WHERE brand_name = ? OR generic_name = ?";
+        return jdbcTemplate.queryForObject(sql, Integer.class, brandName, genericName);
+    }
+
+    private Integer getMedicationInfoId(MedicationInfo medicationInfo) {
+        String sql = "SELECT medication_info_id FROM MedicationInfo WHERE medication_id = ? AND patient_id = ? " +
+                     "AND dosage = ? AND frequency = ? AND route = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, medicationInfo.getMedicationId(),
+                    medicationInfo.getPatientId(), medicationInfo.getDosage(), medicationInfo.getFrequency(), medicationInfo.getRoute());
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     // RowMapper for Medication
@@ -118,9 +143,8 @@ public class JdbcMedicationDao implements MedicationDao {
             medication.setMedicationId(rs.getInt("medication_id"));
             medication.setBrandName(rs.getString("brand_name"));
             medication.setGenericName(rs.getString("generic_name"));
-            medication.setDrugClass(DrugClass.valueOf(rs.getString("drug_class")));
+            medication.setDrugClass(rs.getString("drug_class"));
             medication.setSubCategory(rs.getString("sub_category"));
-            medication.setGeneric(rs.getBoolean("is_generic"));
             return medication;
         }
     }
@@ -137,12 +161,10 @@ public class JdbcMedicationDao implements MedicationDao {
             medication.setMedicationId(rs.getInt("medication_id"));
             medication.setBrandName(rs.getString("brand_name"));
             medication.setGenericName(rs.getString("generic_name"));
-            medication.setDrugClass(DrugClass.valueOf(rs.getString("drug_class")));
+            medication.setDrugClass(rs.getString("drug_class"));
             medication.setSubCategory(rs.getString("sub_category"));
-            medication.setGeneric(rs.getBoolean("is_generic"));
 
-            // Set the Medication object in MedicationInfo
-            medicationInfo.setMedication(medication);
+            // Set the MedicationId in MedicationInfo
 
             // Set the other fields in MedicationInfo
             medicationInfo.setPatientId((UUID) rs.getObject("patient_id"));
