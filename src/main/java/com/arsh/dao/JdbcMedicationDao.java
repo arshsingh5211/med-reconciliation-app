@@ -24,13 +24,6 @@ public class JdbcMedicationDao implements MedicationDao {
     }
 
     @Override
-    public Medication getMedication(int medicationId) {
-        String sql = "SELECT medication_id, name, dosage, frequency, patientId, " +
-                "FROM Patient WHERE medication_id = ?";
-        return jdbcTemplate.queryForObject(sql, new MedicationRowMapper(), medicationId);
-    }
-
-    @Override
     public List<Medication> getMedicationListByPatientId(UUID patientId) {
         String sql = "SELECT m.medication_id, m.name, m.dosage, m.frequency, m.route, " +
                 "m.is_prn, m.date_started, m.is_current, m.pharmacy, m.comments, " +
@@ -40,20 +33,6 @@ public class JdbcMedicationDao implements MedicationDao {
                 "WHERE m.patient_id = ?";
 
         return jdbcTemplate.query(sql, new Object[]{patientId}, new MedicationRowMapper());
-    }
-
-    @Override
-    public List<Medication> getAllMedications() {
-        String sql = "SELECT medication_id, name, dosage, frequency, patientId, " +
-                "FROM Patient";
-        return jdbcTemplate.query(sql, new MedicationRowMapper());
-    }
-
-    @Override
-    public void saveMedication(Medication medication) {
-        String sql = "INSERT INTO Medication (name, dosage, frequency, patientId) " +
-                "VALUES (?, ?, ?, ?)";
-        jdbcTemplate.update(sql, medication.getName(), medication.getDosage(), medication.getFrequency());
     }
 
     @Override
@@ -82,13 +61,6 @@ public class JdbcMedicationDao implements MedicationDao {
         String sql = "DELETE FROM Medication WHERE medication_id = ? AND patient_id = ?";
 
         jdbcTemplate.update(sql, medication.getMedicationId(), patientId);
-    }
-
-
-    @Override
-    public void deleteMedication(int medicationId) {
-        String sql = "DELETE FROM Medication WHERE medication_id = ?";
-        jdbcTemplate.update(sql, medicationId);
     }
 
     // RowMapper for mapping the result set to Medication

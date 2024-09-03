@@ -129,26 +129,21 @@ CREATE TABLE PatientDisease (
 -- Medication Table
 CREATE TABLE Medication (
     medication_id INT DEFAULT nextval('seq_medication_id'::regclass) PRIMARY KEY,
+    patient_id UUID NOT NULL,
     name VARCHAR(100) NOT NULL,
     dosage VARCHAR(50),
     frequency VARCHAR(50),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- PatientMedication Table (Junction Table)
-CREATE TABLE PatientMedication (
-    patient_medication_id INT DEFAULT nextval('seq_patient_medication_id'::regclass) PRIMARY KEY,
-    patient_id UUID NOT NULL,
-    medication_id INT NOT NULL,
-    dosage VARCHAR(50),
-    frequency VARCHAR(50),
-    start_date DATE,
-    end_date DATE,
+    route VARCHAR(50),
+    is_prn BOOLEAN,
+    date_started DATE,
+    is_current BOOLEAN,
+    prescribing_doctor UUID,
+    pharmacy VARCHAR(100),
+    comments TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT FK_patient_medication_patient FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
-    CONSTRAINT FK_patient_medication_medication FOREIGN KEY (medication_id) REFERENCES Medication(medication_id)
+    CONSTRAINT FK_medication_patient FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
+    CONSTRAINT FK_medication_doctor FOREIGN KEY (prescribing_doctor) REFERENCES Doctor(doctor_id)
 );
 
 -- Interaction Table
@@ -216,20 +211,20 @@ VALUES
 ((SELECT patient_id FROM Patient WHERE first_name = 'Clark' AND last_name = 'Kent'), (SELECT disease_id FROM Disease WHERE name = 'Asthma'));
 
 -- Insert test data into Medication table
-INSERT INTO Medication (name, dosage, frequency)
+INSERT INTO Medication (patient_id, name, dosage, frequency, route, is_prn, date_started, is_current, prescribing_doctor, pharmacy, comments)
 VALUES
-('Aspirin', '81mg', 'Daily'),
-('Metformin', '500mg', 'Twice Daily'),
-('Lisinopril', '10mg', 'Daily'),
-('Chemotherapy', 'Varies', 'Weekly');
+  ((SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne'), 'Aspirin', '81mg', 'Daily', 'Oral', false, '2023-01-01', true, (SELECT doctor_id FROM Doctor WHERE first_name = 'Leslie' AND last_name = 'Thompkins'), 'Gotham Pharmacy', 'Take with food'),
+  ((SELECT patient_id FROM Patient WHERE first_name = 'Peter' AND last_name = 'Parker'), 'Metformin', '500mg', 'Twice Daily', 'Oral', false, '2023-01-01', true, (SELECT doctor_id FROM Doctor WHERE first_name = 'Curt' AND last_name = 'Connors'), 'Queens Pharmacy', 'Monitor blood sugar levels'),
+  ((SELECT patient_id FROM Patient WHERE first_name = 'Diana' AND last_name = 'Prince'), 'Chemotherapy', 'Varies', 'Weekly', 'IV', true, '2023-01-01', true, (SELECT doctor_id FROM Doctor WHERE first_name = 'Julia' AND last_name = 'Kapatelis'), 'Themyscira Pharmacy', 'Administer under supervision'),
+  ((SELECT patient_id FROM Patient WHERE first_name = 'Clark' AND last_name = 'Kent'), 'Lisinopril', '10mg', 'Daily', 'Oral', false, '2023-01-01', true, (SELECT doctor_id FROM Doctor WHERE first_name = 'Emil' AND last_name = 'Hamilton'), 'Metropolis Pharmacy', 'Take at the same time daily');
 
--- Insert test data into PatientMedication table
-INSERT INTO PatientMedication (patient_id, medication_id, dosage, frequency, start_date, end_date)
-VALUES
-((SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne'), (SELECT medication_id FROM Medication WHERE name = 'Aspirin'), '81mg', 'Daily', '2023-01-01', NULL),
-((SELECT patient_id FROM Patient WHERE first_name = 'Peter' AND last_name = 'Parker'), (SELECT medication_id FROM Medication WHERE name = 'Metformin'), '500mg', 'Twice Daily', '2023-01-01', NULL),
-((SELECT patient_id FROM Patient WHERE first_name = 'Diana' AND last_name = 'Prince'), (SELECT medication_id FROM Medication WHERE name = 'Chemotherapy'), 'Varies', 'Weekly', '2023-01-01', NULL),
-((SELECT patient_id FROM Patient WHERE first_name = 'Clark' AND last_name = 'Kent'), (SELECT medication_id FROM Medication WHERE name = 'Lisinopril'), '10mg', 'Daily', '2023-01-01', NULL);
+---- Insert test data into PatientMedication table
+--INSERT INTO PatientMedication (patient_id, medication_id, dosage, frequency, start_date, end_date)
+--VALUES
+--((SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne'), (SELECT medication_id FROM Medication WHERE name = 'Aspirin'), '81mg', 'Daily', '2023-01-01', NULL),
+--((SELECT patient_id FROM Patient WHERE first_name = 'Peter' AND last_name = 'Parker'), (SELECT medication_id FROM Medication WHERE name = 'Metformin'), '500mg', 'Twice Daily', '2023-01-01', NULL),
+--((SELECT patient_id FROM Patient WHERE first_name = 'Diana' AND last_name = 'Prince'), (SELECT medication_id FROM Medication WHERE name = 'Chemotherapy'), 'Varies', 'Weekly', '2023-01-01', NULL),
+--((SELECT patient_id FROM Patient WHERE first_name = 'Clark' AND last_name = 'Kent'), (SELECT medication_id FROM Medication WHERE name = 'Lisinopril'), '10mg', 'Daily', '2023-01-01', NULL);
 
 -- Insert test data into Interaction table
 INSERT INTO Interaction (medication_a_id, medication_b_id, severity, description)

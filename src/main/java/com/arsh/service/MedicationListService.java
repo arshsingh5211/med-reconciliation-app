@@ -12,28 +12,12 @@ import java.util.UUID;
 
 @Service
 @Transactional
-public class MedicationService {
+public class MedicationListService {
     private final MedicationDao medicationDao;
 
     @Autowired
-    public MedicationService (MedicationDao medicationDao) {
+    public MedicationListService (MedicationDao medicationDao) {
         this.medicationDao = medicationDao;
-    }
-
-    public Medication getMedication(int medicationId) {
-        return medicationDao.getMedication(medicationId);
-    }
-
-    public List<Medication> getAllMedications() {
-        return medicationDao.getAllMedications();
-    }
-
-    public void saveMedication(Medication medication) {
-        medicationDao.saveMedication(medication);
-    }
-
-    public void deleteMedication(int medicationId) {
-        medicationDao.deleteMedication(medicationId);
     }
 
     public List<Medication> getMedicationListByPatientId(UUID patientId) {
