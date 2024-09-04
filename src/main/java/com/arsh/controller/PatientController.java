@@ -1,7 +1,8 @@
 package com.arsh.controller;
 
+import com.arsh.dto.MedicationDTO;
 import com.arsh.dto.PatientDTO;
-import com.arsh.model.MedicationInfo;
+import com.arsh.model.MedicationList;
 import com.arsh.service.MedicationService;
 import com.arsh.service.PatientService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,19 +51,23 @@ public class PatientController {
 
     // Medication CRUD endpoints for a specific patient
 
+    // todo: get specific medication info from a med list
+
     @GetMapping("/{patientId}/medications")
-    public ResponseEntity<List<MedicationInfo>> getMedicationListByPatientId(@PathVariable UUID patientId) {
+    public ResponseEntity<MedicationList> getMedicationListByPatientId(@PathVariable UUID patientId) {
         return ResponseEntity.ok(medicationService.getMedicationListByPatientId(patientId));
     }
 
     @PostMapping("/{patientId}/medications")
     public ResponseEntity<Void> addMedicationToPatientList(
             @PathVariable UUID patientId,
-            @RequestBody MedicationInfo medicationInfo) {
-        medicationInfo.setPatientId(patientId);
-//        medicationService.addMedication(medicationInfo);
+            @RequestBody MedicationDTO medicationDTO) {
+    medicationService.saveMedicationToMedicationList(patientId, medicationDTO);
         return ResponseEntity.ok().build();
     }
+
+    // todo: delete med from med list
+    // todo: update med on med list
 
 //    @PutMapping("/{patientId}/medications/{medicationInfoId}")
 //    public ResponseEntity<Void> updateMedicationInfo(@PathVariable UUID patientId, @PathVariable int medicationInfoId, @RequestBody MedicationInfo updatedInfo) {

@@ -11,6 +11,7 @@ import java.time.LocalDate;
 @Data
 // @BrandOrGeneric - should i add this here?
 public class MedicationDTO {
+    private int medicationInfoId;
     private String brandName;
     private String genericName;
 
