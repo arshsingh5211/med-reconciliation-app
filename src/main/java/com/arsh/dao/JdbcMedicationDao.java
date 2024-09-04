@@ -186,13 +186,13 @@ public class JdbcMedicationDao implements MedicationDao {
     }
 
     @Override
-    public MedicationInfo getMedicationFromMedListById(int medicationInfoId) {
+    public MedicationDTO getMedicationFromMedListById(int medicationInfoId) {
     String sql = "SELECT mi.*, m.*, d.*, ml.patient_id FROM MedicationInfo mi " +
                 "JOIN Medication m ON mi.medication_id = m.medication_id " +
                 "LEFT JOIN Doctor d ON mi.prescribing_doctor = d.doctor_id " +
                  "JOIN MedicationList ml ON mi.medication_list_id = ml.medication_list_id " +
                 "WHERE mi.medication_info_id = ?";
-        return jdbcTemplate.queryForObject(sql, new MedicationInfoRowMapper(), medicationInfoId);
+        return jdbcTemplate.queryForObject(sql, new MedicationDTORowMapper(), medicationInfoId);
     }
 
     // RowMapper for Medication
@@ -285,46 +285,46 @@ public class JdbcMedicationDao implements MedicationDao {
         }
     }
 
-    // RowMapper for MedicationInfo
-    private static class MedicationInfoRowMapper implements RowMapper<MedicationInfo> {
-        @Override
-        public MedicationInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
-            MedicationInfo medicationInfo = new MedicationInfo();
-            medicationInfo.setMedicationInfoId(rs.getInt("medication_info_id"));
-
-            // Create a Medication object and set its fields
-            Medication medication = new Medication();
-            medication.setMedicationId(rs.getInt("medication_id"));
-            medication.setBrandName(rs.getString("brand_name"));
-            medication.setGenericName(rs.getString("generic_name"));
-            medication.setDrugClass(rs.getString("drug_class"));
-            medication.setSubCategory(rs.getString("sub_category"));
-            medicationInfo.setMedicationId(medication);
-
-            // Create a Medication object and set its fields
-            medicationInfo.setPatientId((UUID) rs.getObject("patient_id"));
-            medicationInfo.setDosage(rs.getString("dosage"));
-            medicationInfo.setFrequency(rs.getString("frequency"));
-            medicationInfo.setRoute(rs.getString("route"));
-            medicationInfo.setPrn(rs.getBoolean("is_prn"));
-            medicationInfo.setDateStarted(
-                    rs.getDate("date_started") != null ? rs.getDate("date_started").toLocalDate() : LocalDate.now()
-            );
-            medicationInfo.setCurrent(rs.getBoolean("is_current"));
-            medicationInfo.setPharmacy(rs.getString("pharmacy"));
-            medicationInfo.setComments(rs.getString("comments"));
-
-            // Prescribing Doctor
-            UUID doctorId = (UUID) rs.getObject("prescribing_doctor");
-            if (doctorId != null) {
-                Doctor doctor = new Doctor();
-                doctor.setDoctorId(doctorId);
-            doctor.setFirstName(rs.getString("first_name"));
-            doctor.setLastName(rs.getString("last_name"));
-                medicationInfo.setPrescribingDoctor(doctor);
-            }
-
-            return medicationInfo;
-        }
-    }
+    // RowMapper for MedicationInfo - i dont want to use this, use dto instead
+//    private static class MedicationInfoRowMapper implements RowMapper<MedicationInfo> {
+//        @Override
+//        public MedicationInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+//            MedicationInfo medicationInfo = new MedicationInfo();
+//            medicationInfo.setMedicationInfoId(rs.getInt("medication_info_id"));
+//
+//            // Create a Medication object and set its fields
+//            Medication medication = new Medication();
+//            medication.setMedicationId(rs.getInt("medication_id"));
+//            medication.setBrandName(rs.getString("brand_name"));
+//            medication.setGenericName(rs.getString("generic_name"));
+//            medication.setDrugClass(rs.getString("drug_class"));
+//            medication.setSubCategory(rs.getString("sub_category"));
+//            medicationInfo.setMedicationId(medication);
+//
+//            // Create a Medication object and set its fields
+//            medicationInfo.setPatientId((UUID) rs.getObject("patient_id"));
+//            medicationInfo.setDosage(rs.getString("dosage"));
+//            medicationInfo.setFrequency(rs.getString("frequency"));
+//            medicationInfo.setRoute(rs.getString("route"));
+//            medicationInfo.setPrn(rs.getBoolean("is_prn"));
+//            medicationInfo.setDateStarted(
+//                    rs.getDate("date_started") != null ? rs.getDate("date_started").toLocalDate() : LocalDate.now()
+//            );
+//            medicationInfo.setCurrent(rs.getBoolean("is_current"));
+//            medicationInfo.setPharmacy(rs.getString("pharmacy"));
+//            medicationInfo.setComments(rs.getString("comments"));
+//
+//            // Prescribing Doctor
+//            UUID doctorId = (UUID) rs.getObject("prescribing_doctor");
+//            if (doctorId != null) {
+//                Doctor doctor = new Doctor();
+//                doctor.setDoctorId(doctorId);
+//            doctor.setFirstName(rs.getString("first_name"));
+//            doctor.setLastName(rs.getString("last_name"));
+//                medicationInfo.setPrescribingDoctor(doctor);
+//            }
+//
+//            return medicationInfo;
+//        }
+//    }
 }

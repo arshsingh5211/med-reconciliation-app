@@ -2,7 +2,6 @@ package com.arsh.dao;
 
 import com.arsh.dto.MedicationDTO;
 import com.arsh.model.Medication;
-import com.arsh.model.MedicationInfo;
 import com.arsh.model.MedicationList;
 
 import java.util.List;
@@ -20,5 +19,5 @@ public interface MedicationDao {
     void saveMedicationToMedList(UUID patientId, MedicationDTO medicationDTO);
     void updateMedicationOnMedList(MedicationDTO medicationDTO);
     void deleteMedicationFromMedList(int medicationInfoId);
-    MedicationInfo getMedicationFromMedListById(int medicationInfoId);
+    MedicationDTO getMedicationFromMedListById(int medicationInfoId);
 }

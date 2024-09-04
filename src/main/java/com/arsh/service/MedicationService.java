@@ -4,7 +4,6 @@ import com.arsh.dao.MedicationDao;
 import com.arsh.dto.MedicationDTO;
 import com.arsh.exception.MedicationValidationException;
 import com.arsh.model.Medication;
-import com.arsh.model.MedicationInfo;
 import com.arsh.model.MedicationList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -50,16 +49,16 @@ public class MedicationService {
     }
 
     // Update an existing medication in the patient's list
-    public void updateMedicationInfo(int medicationInfoId, MedicationDTO medicationDTO) {
+    public void updateMedicationOnMedList(int medicationInfoId, MedicationDTO medicationDTO) {
         validateMedicationDTO(medicationDTO);
         medicationDao.updateMedicationOnMedList(medicationDTO);
     }
 
-    public void deleteMedicationInfo(int medicationInfoId) {
+    public void deleteMedicationFromMedList(int medicationInfoId) {
         medicationDao.deleteMedicationFromMedList(medicationInfoId);
     }
 
-    public MedicationInfo getMedicationInfo(int medicationInfoId) {
+    public MedicationDTO getMedicationOnMedList(int medicationInfoId) {
         return medicationDao.getMedicationFromMedListById(medicationInfoId);
     }
 
