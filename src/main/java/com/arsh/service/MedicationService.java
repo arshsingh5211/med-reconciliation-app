@@ -44,34 +44,34 @@ public class MedicationService {
         return medicationDao.getMedicationListByPatientId(patientId);
     }
 
-public void saveMedicationToMedicationList(UUID patientId, MedicationDTO medicationDTO) {
-    medicationDao.saveMedicationToMedList(patientId, medicationDTO);
+    public void saveMedicationToMedicationList(UUID patientId, MedicationDTO medicationDTO) {
+        validateMedicationDTO(medicationDTO);
+        medicationDao.saveMedicationToMedList(patientId, medicationDTO);
     }
 
-    // Update an existing medication in the patient's list with validation
-//    public void updateMedicationInfo(int medicationInfoId, MedicationInfo updatedInfo) {
-//        MedicationInfo existingInfo = medicationDao.getMedicationInfoById(medicationInfoId);
-//        if (existingInfo == null) {
-//            throw new MedicationNotFoundException("MedicationInfo with ID " + medicationInfoId + " not found.");
-//        }
-//        validateMedicationInfo(updatedInfo);
-//        medicationDao.updateMedicationInfo(updatedInfo);
-//    }
+    // Update an existing medication in the patient's list
+    public void updateMedicationInfo(int medicationInfoId, MedicationDTO medicationDTO) {
+        validateMedicationDTO(medicationDTO);
+        medicationDao.updateMedicationOnMedList(medicationDTO);
+    }
 
-//    public void deleteMedicationInfo(int medicationInfoId) {
-//        MedicationInfo existingInfo = medicationDao.getMedicationInfoById(medicationInfoId);
-//        if (existingInfo == null) {
-//            throw new MedicationNotFoundException("MedicationInfo with ID " + medicationInfoId + " not found.");
-//        }
-//        medicationDao.deleteMedicationInfo(medicationInfoId);
-//    }
+    public void deleteMedicationInfo(int medicationInfoId) {
+        medicationDao.deleteMedicationFromMedList(medicationInfoId);
+    }
 
-    private void validateMedicationInfo(MedicationInfo medicationInfo) {
-        if (medicationInfo.getMedicationId() == null) {
-            throw new MedicationValidationException("Medication cannot be null.");
+    public MedicationInfo getMedicationInfo(int medicationInfoId) {
+        return medicationDao.getMedicationFromMedListById(medicationInfoId);
+    }
+
+    private void validateMedicationDTO(MedicationDTO medicationDTO) {
+        if (medicationDTO.getBrandName() == null && medicationDTO.getGenericName() == null) {
+            throw new MedicationValidationException("Either brand name or generic name must be provided.");
         }
-        if (medicationInfo.getDosage() == null || medicationInfo.getDosage().isEmpty()) {
+        if (medicationDTO.getDosage() == null || medicationDTO.getDosage().isEmpty()) {
             throw new MedicationValidationException("Dosage cannot be null or empty.");
+        }
+        if (medicationDTO.getFrequency() == null || medicationDTO.getFrequency().isEmpty()) {
+            throw new MedicationValidationException("Frequency cannot be null or empty.");
         }
         // Add more validation as needed
     }

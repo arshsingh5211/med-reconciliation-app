@@ -1,11 +1,12 @@
 BEGIN TRANSACTION;
 
-DROP TABLE IF EXISTS Patient, PatientInfo, Medication, MedicationInfo, Doctor, PatientDoctor, PatientDisease, Disease CASCADE;
-DROP SEQUENCE IF EXISTS seq_medication_info_id, seq_patient_disease_id, seq_patient_doctor_id, seq_disease_id, seq_patient_info_id;
+DROP TABLE IF EXISTS Patient, PatientInfo, Medication, MedicationInfo, MedicationList, Doctor, PatientDoctor, PatientDisease, Disease CASCADE;
+DROP SEQUENCE IF EXISTS seq_medication_info_id, seq_medication_list_id, seq_patient_disease_id, seq_patient_doctor_id, seq_disease_id, seq_patient_info_id;
 
 -- Sequences for IDs
 CREATE SEQUENCE seq_medication_info_id INCREMENT BY 1 MINVALUE 1 CACHE 1;
 CREATE SEQUENCE seq_medication_id INCREMENT BY 1 MINVALUE 1 CACHE 1;
+CREATE SEQUENCE seq_medication_list_id INCREMENT BY 1 MINVALUE 1 CACHE 1;
 CREATE SEQUENCE seq_patient_disease_id INCREMENT BY 1 MINVALUE 1 CACHE 1;
 CREATE SEQUENCE seq_patient_doctor_id INCREMENT BY 1 MINVALUE 1 CACHE 1;
 CREATE SEQUENCE seq_disease_id INCREMENT BY 1 MINVALUE 1 CACHE 1;
@@ -87,6 +88,14 @@ CREATE TABLE PatientDisease (
     CONSTRAINT FK_patient_disease_disease FOREIGN KEY (disease_id) REFERENCES Disease(disease_id)
 );
 
+-- MedicationList Table (Links patients to their medication list)
+CREATE TABLE MedicationList (
+    medication_list_id INT DEFAULT nextval('seq_medication_list_id'::regclass) PRIMARY KEY,
+    patient_id UUID NOT NULL,
+    last_changed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT FK_medication_list_patient FOREIGN KEY (patient_id) REFERENCES Patient(patient_id)
+);
+
 -- Medication Table (General medication data)
 CREATE TABLE Medication (
     medication_id INT DEFAULT nextval('seq_medication_id'::regclass) PRIMARY KEY,
@@ -108,8 +117,8 @@ CREATE TABLE Medication (
 -- MedicationInfo Table (Patient-specific medication data)
 CREATE TABLE MedicationInfo (
     medication_info_id INT DEFAULT nextval('seq_medication_info_id'::regclass) PRIMARY KEY,
+    medication_list_id INT NOT NULL,
     medication_id INT NOT NULL,
-    patient_id UUID NOT NULL,
     dosage VARCHAR(50),
     frequency VARCHAR(50),
     route VARCHAR(50),   -- Oral, IV, etc.
@@ -121,7 +130,7 @@ CREATE TABLE MedicationInfo (
     comments TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT FK_medication_info_patient FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
+    CONSTRAINT FK_medication_info_medication_list FOREIGN KEY (medication_list_id) REFERENCES MedicationList(medication_list_id),
     CONSTRAINT FK_medication_info_medication FOREIGN KEY (medication_id) REFERENCES Medication(medication_id),
     CONSTRAINT FK_medication_info_doctor FOREIGN KEY (prescribing_doctor) REFERENCES Doctor(doctor_id)
 );
@@ -186,13 +195,37 @@ VALUES
 ('Advil', 'Ibuprofen', 'Anti-inflammatory', 'NSAID', false),
 ('Lasix', 'Furosemide', 'Diuretic', 'Loop diuretics', false);
 
--- Insert test data into MedicationInfo table
-INSERT INTO MedicationInfo (medication_id, patient_id, dosage, frequency, route, is_prn, date_started, is_current, prescribing_doctor, pharmacy, comments)
+-- Insert test data into MedicationList table
+INSERT INTO MedicationList (patient_id, last_changed)
 VALUES
-  ((SELECT medication_id FROM Medication WHERE brand_name = 'Tylenol'), (SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne'), '81mg', 'Daily', 'Oral', FALSE, '2023-01-01', TRUE, (SELECT doctor_id FROM Doctor WHERE first_name = 'Leslie' AND last_name = 'Thompkins'), 'Gotham Pharmacy', 'Take with food'),
-  ((SELECT medication_id FROM Medication WHERE generic_name = 'Metformin'), (SELECT patient_id FROM Patient WHERE first_name = 'Peter' AND last_name = 'Parker'), '500mg', 'Twice Daily', 'Oral', FALSE, '2023-01-01', TRUE, (SELECT doctor_id FROM Doctor WHERE first_name = 'Curt' AND last_name = 'Connors'), 'Queens Pharmacy', 'Monitor blood sugar levels'),
-  ((SELECT medication_id FROM Medication WHERE brand_name = 'Advil'), (SELECT patient_id FROM Patient WHERE first_name = 'Diana' AND last_name = 'Prince'), 'Varies', 'Weekly', 'IV', TRUE, '2023-01-01', TRUE, (SELECT doctor_id FROM Doctor WHERE first_name = 'Julia' AND last_name = 'Kapatelis'), 'Themyscira Pharmacy', 'Administer under supervision'),
-  ((SELECT medication_id FROM Medication WHERE generic_name = 'Furosemide'), (SELECT patient_id FROM Patient WHERE first_name = 'Clark' AND last_name = 'Kent'), '10mg', 'Daily', 'Oral', FALSE, '2023-01-01', TRUE, (SELECT doctor_id FROM Doctor WHERE first_name = 'Emil' AND last_name = 'Hamilton'), 'Metropolis Pharmacy', 'Take at the same time daily');
+((SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne'), CURRENT_TIMESTAMP),
+((SELECT patient_id FROM Patient WHERE first_name = 'Peter' AND last_name = 'Parker'), CURRENT_TIMESTAMP),
+((SELECT patient_id FROM Patient WHERE first_name = 'Diana' AND last_name = 'Prince'), CURRENT_TIMESTAMP),
+((SELECT patient_id FROM Patient WHERE first_name = 'Clark' AND last_name = 'Kent'), CURRENT_TIMESTAMP);
+
+
+-- Insert test data into MedicationInfo table
+INSERT INTO MedicationInfo (medication_id, medication_list_id, dosage, frequency, route, is_prn, date_started, is_current, prescribing_doctor, pharmacy, comments)
+VALUES
+((SELECT medication_id FROM Medication WHERE brand_name = 'Tylenol'),
+ (SELECT medication_list_id FROM MedicationList WHERE patient_id = (SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne')),
+ '81mg', 'Daily', 'Oral', FALSE, '2023-01-01', TRUE,
+ (SELECT doctor_id FROM Doctor WHERE first_name = 'Leslie' AND last_name = 'Thompkins'), 'Gotham Pharmacy', 'Take with food'),
+
+((SELECT medication_id FROM Medication WHERE generic_name = 'Metformin'),
+ (SELECT medication_list_id FROM MedicationList WHERE patient_id = (SELECT patient_id FROM Patient WHERE first_name = 'Peter' AND last_name = 'Parker')),
+ '500mg', 'Twice Daily', 'Oral', FALSE, '2023-01-01', TRUE,
+ (SELECT doctor_id FROM Doctor WHERE first_name = 'Curt' AND last_name = 'Connors'), 'Queens Pharmacy', 'Monitor blood sugar levels'),
+
+((SELECT medication_id FROM Medication WHERE brand_name = 'Advil'),
+ (SELECT medication_list_id FROM MedicationList WHERE patient_id = (SELECT patient_id FROM Patient WHERE first_name = 'Diana' AND last_name = 'Prince')),
+ 'Varies', 'Weekly', 'IV', TRUE, '2023-01-01', TRUE,
+ (SELECT doctor_id FROM Doctor WHERE first_name = 'Julia' AND last_name = 'Kapatelis'), 'Themyscira Pharmacy', 'Administer under supervision'),
+
+((SELECT medication_id FROM Medication WHERE generic_name = 'Furosemide'),
+ (SELECT medication_list_id FROM MedicationList WHERE patient_id = (SELECT patient_id FROM Patient WHERE first_name = 'Clark' AND last_name = 'Kent')),
+ '10mg', 'Daily', 'Oral', FALSE, '2023-01-01', TRUE,
+ (SELECT doctor_id FROM Doctor WHERE first_name = 'Emil' AND last_name = 'Hamilton'), 'Metropolis Pharmacy', 'Take at the same time daily');
 
 -- Insert test data into AuditLog table
 INSERT INTO AuditLog (entity_type, entity_id, action, changed_by, change_details)

@@ -1,12 +1,12 @@
 package com.arsh.dto;
 
-import com.arsh.enums.DrugClass;
 import com.arsh.model.Doctor;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 // @BrandOrGeneric - should i add this here?
@@ -16,7 +16,7 @@ public class MedicationDTO {
     private String genericName;
 
     @NotNull(message = "Drug class cannot be null")
-    private DrugClass drugClass;
+    private String drugClass;
 
     @NotNull(message = "Sub-category cannot be null")
     @Size(max = 50, message = "Sub-category must be less than or equal to 50 characters")
@@ -42,6 +42,8 @@ public class MedicationDTO {
 
     @Size(max = 100, message = "Pharmacy must be less than or equal to 100 characters")
     private String pharmacy;
+
+    private LocalDateTime lastChanged;
 
     @Size(max = 500, message = "Comments must be less than or equal to 500 characters")
     private String comments;

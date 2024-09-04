@@ -2,6 +2,7 @@ package com.arsh.controller;
 
 import com.arsh.dto.MedicationDTO;
 import com.arsh.dto.PatientDTO;
+import com.arsh.model.MedicationInfo;
 import com.arsh.model.MedicationList;
 import com.arsh.service.MedicationService;
 import com.arsh.service.PatientService;
@@ -52,6 +53,13 @@ public class PatientController {
     // Medication CRUD endpoints for a specific patient
 
     // todo: get specific medication info from a med list
+    @GetMapping("/{patientId}/medications/{medicationInfoId}")
+    public ResponseEntity<MedicationInfo> getMedicationInfo(
+            @PathVariable UUID patientId,
+            @PathVariable int medicationInfoId) {
+        MedicationInfo medicationInfo = medicationService.getMedicationInfo(medicationInfoId);
+        return ResponseEntity.ok(medicationInfo);
+    }
 
     @GetMapping("/{patientId}/medications")
     public ResponseEntity<MedicationList> getMedicationListByPatientId(@PathVariable UUID patientId) {
@@ -69,15 +77,19 @@ public class PatientController {
     // todo: delete med from med list
     // todo: update med on med list
 
-//    @PutMapping("/{patientId}/medications/{medicationInfoId}")
-//    public ResponseEntity<Void> updateMedicationInfo(@PathVariable UUID patientId, @PathVariable int medicationInfoId, @RequestBody MedicationInfo updatedInfo) {
-//        medicationService.updateMedicationInfo(medicationInfoId, updatedInfo);
-//        return ResponseEntity.ok().build();
-//    }
+    @PutMapping("/{patientId}/medications/{medicationInfoId}")
+    public ResponseEntity<Void> updateMedicationInfo(
+            @PathVariable UUID patientId,
+            @PathVariable int medicationInfoId,
+            @RequestBody MedicationDTO updatedInfo) {
+        medicationService.updateMedicationInfo(medicationInfoId, updatedInfo);
+        return ResponseEntity.ok().build();
+    }
 
-//    @DeleteMapping("/{patientId}/medications/{medicationInfoId}")
-//    public ResponseEntity<Void> deleteMedicationInfo(@PathVariable UUID patientId, @PathVariable int medicationInfoId) {
-//        medicationService.deleteMedicationInfo(medicationInfoId);
-//        return ResponseEntity.ok().build();
-//    }
+
+    @DeleteMapping("/{patientId}/medications/{medicationInfoId}")
+    public ResponseEntity<Void> deleteMedicationInfo(@PathVariable UUID patientId, @PathVariable int medicationInfoId) {
+        medicationService.deleteMedicationInfo(medicationInfoId);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -1,7 +1,6 @@
 package com.arsh.dao;
 
 import com.arsh.dto.MedicationDTO;
-import com.arsh.enums.DrugClass;
 import com.arsh.model.Doctor;
 import com.arsh.model.Medication;
 import com.arsh.model.MedicationInfo;
@@ -56,42 +55,70 @@ public class JdbcMedicationDao implements MedicationDao {
     }
 
 
-
-
     // -------------------------------------------------------------------
     // Functional Methods for Manipulating Patient's Medication Lists
     @Override
     public MedicationList getMedicationListByPatientId(UUID patientId) {
-        String sql = "SELECT * FROM medication_list WHERE patient_id = ?";
-        return jdbcTemplate.queryForObject(sql, new MedicationListRowMapper(), patientId);
+        String sql = "SELECT ml.medication_list_id, ml.last_changed, mi.*, m.*, d.* " +
+                "FROM MedicationList ml " +
+                "LEFT JOIN MedicationInfo mi ON ml.medication_list_id = mi.medication_list_id " +
+                "LEFT JOIN Medication m ON mi.medication_id = m.medication_id " +
+                "LEFT JOIN Doctor d ON mi.prescribing_doctor = d.doctor_id " +
+                "WHERE ml.patient_id = ?";
+
+    List<MedicationDTO> medicationDtoList = jdbcTemplate.query(sql, new MedicationDTORowMapper(), patientId);
+
+    MedicationList medList = new MedicationList();
+    if (!medicationDtoList.isEmpty()) {
+        medList.setMedicationList(medicationDtoList);
+        medList.setLastChanged(medicationDtoList.get(0).getLastChanged());
+    } else {
+        // Handle case where there's no medication info for the patient
+        medList.setMedicationList(new ArrayList<>());
+        // Set last changed or leave it null
     }
+
+    return medList;
+}
+
 
 
     @Override
     public void saveMedicationToMedList(UUID patientId, MedicationDTO medicationDTO) {
-    // First, check if the medication already exists
-    String checkMedSql = "SELECT medication_id FROM Medication WHERE brand_name = ? OR generic_name = ?";
-    Integer medicationId = jdbcTemplate.queryForObject(checkMedSql, Integer.class,
-            medicationDTO.getBrandName(), medicationDTO.getGenericName());
+        // Check if a MedicationList exists for the patient
+        String checkMedListSql = "SELECT medication_list_id FROM MedicationList WHERE patient_id = ?";
+        Integer medListId = jdbcTemplate.queryForObject(checkMedListSql, Integer.class, patientId);
 
-    // If the medication does not exist, insert it
-    if (medicationId == null) {
-        String insertMedSql = "INSERT INTO Medication (brand_name, generic_name, drug_class, sub_category, is_generic) " +
-                "VALUES (?, ?, ?, ?, ?) RETURNING medication_id";
-        medicationId = jdbcTemplate.queryForObject(insertMedSql, Integer.class,
-                medicationDTO.getBrandName(), medicationDTO.getGenericName(),
-                medicationDTO.getDrugClass(), medicationDTO.getSubCategory());
-    }
+        if (medListId == null) {
+            // Create a new MedicationList
+            String createMedListSql = "INSERT INTO MedicationList (patient_id) VALUES (?) RETURNING medication_list_id";
+            medListId = jdbcTemplate.queryForObject(createMedListSql, Integer.class, patientId);
+        }
 
-    // Insert the patient-specific medication information into MedicationInfo
-    String insertMedInfoSql = "INSERT INTO MedicationInfo (medication_id, patient_id, dosage, frequency, route, " +
-            "is_prn, date_started, is_current, prescribing_doctor, pharmacy, comments) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    jdbcTemplate.update(insertMedInfoSql,
-            medicationId, patientId,
-            medicationDTO.getDosage(), medicationDTO.getFrequency(), medicationDTO.getRoute(),
-            medicationDTO.isPrn(), medicationDTO.getDateStarted(), medicationDTO.isCurrent(),
-            medicationDTO.getPrescribingDoctor(), medicationDTO.getPharmacy(), medicationDTO.getComments());
+        // Check if the medication already exists
+        String checkMedSql = "SELECT medication_id FROM Medication WHERE brand_name = ? OR generic_name = ?";
+        Integer medicationId = jdbcTemplate.queryForObject(checkMedSql, Integer.class,
+                medicationDTO.getBrandName(), medicationDTO.getGenericName());
+
+        // If the medication does not exist, insert it
+        if (medicationId == null) {
+            String insertMedSql = "INSERT INTO Medication (brand_name, generic_name, drug_class, sub_category) " +
+                    "VALUES (?, ?, ?, ?) RETURNING medication_id";
+            medicationId = jdbcTemplate.queryForObject(insertMedSql, Integer.class,
+                    medicationDTO.getBrandName(), medicationDTO.getGenericName(),
+                    medicationDTO.getDrugClass(), medicationDTO.getSubCategory());
+        }
+
+        // Insert the patient-specific medication information into MedicationInfo
+        String insertMedInfoSql = "INSERT INTO MedicationInfo (medication_list_id, medication_id, dosage, frequency, route, " +
+                "is_prn, date_started, is_current, prescribing_doctor, pharmacy, comments) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        jdbcTemplate.update(insertMedInfoSql, medListId,
+                medicationId,
+                medicationDTO.getDosage(), medicationDTO.getFrequency(), medicationDTO.getRoute(),
+                medicationDTO.isPrn(), medicationDTO.getDateStarted(), medicationDTO.isCurrent(),
+                medicationDTO.getPrescribingDoctor() != null ? medicationDTO.getPrescribingDoctor().getDoctorId() : null,
+                medicationDTO.getPharmacy(), medicationDTO.getComments());
     }
 
     @Override
@@ -109,7 +136,7 @@ public class JdbcMedicationDao implements MedicationDao {
                 medicationDTO.getPrescribingDoctor() != null ? medicationDTO.getPrescribingDoctor().getDoctorId() : null,
                 medicationDTO.getPharmacy(),
                 medicationDTO.getComments(),
-                medicationDTO.getMedicationInfoId()  // Assuming this is the medication_info_id
+                medicationDTO.getMedicationInfoId()
         );
     }
 
@@ -129,34 +156,6 @@ public class JdbcMedicationDao implements MedicationDao {
         return jdbcTemplate.queryForObject(sql, new MedicationInfoRowMapper(), medicationInfoId);
     }
 
-
-
-
-
-
-    // -------------------------------------------------------------------
-    // HELPER METHODS ONLY
-    private Integer getMedicationIdByName(String brandName, String genericName) {
-        String sql = "SELECT medication_id FROM Medication WHERE brand_name = ? OR generic_name = ?";
-        return jdbcTemplate.queryForObject(sql, Integer.class, brandName, genericName);
-    }
-
-    private Integer getMedicationInfoId(MedicationInfo medicationInfo) {
-        String sql = "SELECT medication_info_id FROM MedicationInfo WHERE medication_id = ? AND patient_id = ? " +
-                     "AND dosage = ? AND frequency = ? AND route = ?";
-        try {
-            return jdbcTemplate.queryForObject(sql, Integer.class, medicationInfo.getMedicationId(),
-                    medicationInfo.getPatientId(), medicationInfo.getDosage(), medicationInfo.getFrequency(), medicationInfo.getRoute());
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-
-
-
-
-
     // RowMapper for Medication
     private static class MedicationRowMapper implements RowMapper<Medication> {
         @Override
@@ -171,34 +170,75 @@ public class JdbcMedicationDao implements MedicationDao {
         }
     }
 
+    // RowMapper for MedicationDTO
+    private static class MedicationDTORowMapper implements RowMapper<MedicationDTO> {
+        @Override
+        public MedicationDTO mapRow(ResultSet rs, int rowNum) throws SQLException {
+            MedicationDTO medicationDTO = new MedicationDTO();
+            medicationDTO.setMedicationInfoId(rs.getInt("medication_info_id"));
+            medicationDTO.setBrandName(rs.getString("brand_name"));
+            medicationDTO.setGenericName(rs.getString("generic_name"));
+            medicationDTO.setDrugClass(rs.getString("drug_class"));
+            medicationDTO.setSubCategory(rs.getString("sub_category"));
+            medicationDTO.setDosage(rs.getString("dosage"));
+            medicationDTO.setFrequency(rs.getString("frequency"));
+            medicationDTO.setRoute(rs.getString("route"));
+            medicationDTO.setPrn(rs.getBoolean("is_prn"));
+            medicationDTO.setDateStarted(rs.getDate("date_started").toLocalDate());
+            medicationDTO.setCurrent(rs.getBoolean("is_current"));
+            // Handle optional prescribing doctor
+            UUID doctorId = (UUID) rs.getObject("prescribing_doctor");
+            if (doctorId != null) {
+                Doctor doctor = new Doctor();
+                doctor.setDoctorId(doctorId);
+                doctor.setFirstName(rs.getString("first_name"));
+                doctor.setLastName(rs.getString("last_name"));
+                medicationDTO.setPrescribingDoctor(doctor);
+            }
+            medicationDTO.setPharmacy(rs.getString("pharmacy"));
+            medicationDTO.setComments(rs.getString("comments"));
+            medicationDTO.setLastChanged(rs.getTimestamp("last_changed").toLocalDateTime());
+            return medicationDTO;
+        }
+    }
+
     // RowMapper for MedicationList
     private static class MedicationListRowMapper implements RowMapper<MedicationList> {
         @Override
         public MedicationList mapRow(ResultSet rs, int rowNum) throws SQLException {
             MedicationList medList = new MedicationList();
-            medList.setPatientId((UUID) rs.getObject("patient_id"));
+            medList.setMedicationListId(rs.getInt("medication_list_id"));
+            medList.setLastChanged(rs.getTimestamp("last_changed").toLocalDateTime());
 
             List<MedicationDTO> medicationDtoList = new ArrayList<>();
-            ResultSet medicationRS = rs.getArray("medication_list").getResultSet();
-            while (medicationRS.next()) {
+            do {
                 MedicationDTO med = new MedicationDTO();
-                med.setBrandName(medicationRS.getString("brand_name"));
-                med.setGenericName(medicationRS.getString("generic_name"));
-                med.setDrugClass(DrugClass.valueOf(medicationRS.getString("drug_class")));
-                med.setSubCategory(medicationRS.getString("sub_category"));
-                med.setDosage(medicationRS.getString("dosage"));
-                med.setFrequency(medicationRS.getString("frequency"));
-                med.setRoute(medicationRS.getString("route"));
-                med.setPrn(medicationRS.getBoolean("is_prn"));
-                med.setDateStarted(medicationRS.getDate("date_started").toLocalDate());
-                med.setCurrent(medicationRS.getBoolean("is_current"));
-                med.setPharmacy(medicationRS.getString("pharmacy"));
-                med.setComments(medicationRS.getString("comments"));
+                med.setMedicationInfoId(rs.getInt("medication_info_id"));
+                med.setBrandName(rs.getString("brand_name"));
+                med.setGenericName(rs.getString("generic_name"));
+                med.setDrugClass(rs.getString("drug_class"));
+                med.setSubCategory(rs.getString("sub_category"));
+                med.setDosage(rs.getString("dosage"));
+                med.setFrequency(rs.getString("frequency"));
+                med.setRoute(rs.getString("route"));
+                med.setPrn(rs.getBoolean("is_prn"));
+                med.setDateStarted(rs.getDate("date_started").toLocalDate());
+                med.setCurrent(rs.getBoolean("is_current"));
+                // Handle optional prescribing doctor
+                UUID doctorId = (UUID) rs.getObject("prescribing_doctor");
+                if (doctorId != null) {
+                    Doctor doctor = new Doctor();
+                    doctor.setDoctorId(doctorId);
+                    doctor.setFirstName(rs.getString("first_name"));
+                    doctor.setLastName(rs.getString("last_name"));
+                    med.setPrescribingDoctor(doctor);
+                }
+                med.setPharmacy(rs.getString("pharmacy"));
+                med.setComments(rs.getString("comments"));
                 medicationDtoList.add(med);
-            }
-            medList.setMedicationList(medicationDtoList);
+            } while (rs.next());
 
-            medList.setLastChanged(rs.getDate("last_changed").toLocalDate());
+            medList.setMedicationList(medicationDtoList);
             return medList;
         }
     }
