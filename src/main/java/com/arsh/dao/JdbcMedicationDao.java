@@ -66,34 +66,27 @@ public class JdbcMedicationDao implements MedicationDao {
                 "LEFT JOIN Doctor d ON mi.prescribing_doctor = d.doctor_id " +
                 "WHERE ml.patient_id = ?";
 
-    List<MedicationDTO> medicationDtoList = jdbcTemplate.query(sql, new MedicationDTORowMapper(), patientId);
+        List<MedicationDTO> medicationDtoList = jdbcTemplate.query(sql, new MedicationDTORowMapper(), patientId);
 
-    MedicationList medList = new MedicationList();
-    if (!medicationDtoList.isEmpty()) {
-        medList.setMedicationList(medicationDtoList);
-        medList.setLastChanged(medicationDtoList.get(0).getLastChanged());
-    } else {
-        // Handle case where there's no medication info for the patient
-        medList.setMedicationList(new ArrayList<>());
-        // Set last changed or leave it null
+        MedicationList medList = new MedicationList();
+        if (!medicationDtoList.isEmpty()) {
+            medList.setMedicationList(medicationDtoList);
+            medList.setLastChanged(medicationDtoList.get(0).getLastChanged());
+        } else {
+            // Handle case where there's no medication info for the patient
+            medList.setMedicationList(new ArrayList<>());
+            // Set last changed or leave it null
+        }
+
+        return medList;
     }
-
-    return medList;
-}
-
 
 
     @Override
     public void saveMedicationToMedList(UUID patientId, MedicationDTO medicationDTO) {
-        // Check if a MedicationList exists for the patient
+        // Get the MedicationList ID for the patient
         String checkMedListSql = "SELECT medication_list_id FROM MedicationList WHERE patient_id = ?";
         Integer medListId = jdbcTemplate.queryForObject(checkMedListSql, Integer.class, patientId);
-
-        if (medListId == null) {
-            // Create a new MedicationList
-            String createMedListSql = "INSERT INTO MedicationList (patient_id) VALUES (?) RETURNING medication_list_id";
-            medListId = jdbcTemplate.queryForObject(createMedListSql, Integer.class, patientId);
-        }
 
         // Check if the medication already exists
         String checkMedSql = "SELECT medication_id FROM Medication WHERE brand_name = ? OR generic_name = ?";
