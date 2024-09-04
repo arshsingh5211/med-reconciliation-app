@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
-// @BrandOrGeneric - should i add this here?
+// todo: @BrandOrGeneric - should i add this here?
 public class MedicationDTO {
     private int medicationInfoId;
     private String brandName;

@@ -2,7 +2,6 @@ package com.arsh.controller;
 
 import com.arsh.dto.MedicationDTO;
 import com.arsh.dto.PatientDTO;
-import com.arsh.model.MedicationInfo;
 import com.arsh.model.MedicationList;
 import com.arsh.service.MedicationService;
 import com.arsh.service.PatientService;
@@ -54,11 +53,11 @@ public class PatientController {
 
     // todo: get specific medication info from a med list
     @GetMapping("/{patientId}/medications/{medicationInfoId}")
-    public ResponseEntity<MedicationInfo> getMedicationInfo(
+    public ResponseEntity<MedicationDTO> getMedicationForPatient(
             @PathVariable UUID patientId,
             @PathVariable int medicationInfoId) {
-        MedicationInfo medicationInfo = medicationService.getMedicationInfo(medicationInfoId);
-        return ResponseEntity.ok(medicationInfo);
+        MedicationDTO medicationDTO = medicationService.getMedicationOnMedList(medicationInfoId);
+        return ResponseEntity.ok(medicationDTO);
     }
 
     @GetMapping("/{patientId}/medications")
@@ -82,14 +81,14 @@ public class PatientController {
             @PathVariable UUID patientId,
             @PathVariable int medicationInfoId,
             @RequestBody MedicationDTO updatedInfo) {
-        medicationService.updateMedicationInfo(medicationInfoId, updatedInfo);
+        medicationService.updateMedicationOnMedList(medicationInfoId, updatedInfo);
         return ResponseEntity.ok().build();
     }
 
 
     @DeleteMapping("/{patientId}/medications/{medicationInfoId}")
     public ResponseEntity<Void> deleteMedicationInfo(@PathVariable UUID patientId, @PathVariable int medicationInfoId) {
-        medicationService.deleteMedicationInfo(medicationInfoId);
+        medicationService.deleteMedicationFromMedList(medicationInfoId);
         return ResponseEntity.ok().build();
     }
 }
