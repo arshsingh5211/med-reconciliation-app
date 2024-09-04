@@ -187,9 +187,10 @@ public class JdbcMedicationDao implements MedicationDao {
 
     @Override
     public MedicationInfo getMedicationFromMedListById(int medicationInfoId) {
-        String sql = "SELECT mi.*, m.*, d.* FROM MedicationInfo mi " +
+    String sql = "SELECT mi.*, m.*, d.*, ml.patient_id FROM MedicationInfo mi " +
                 "JOIN Medication m ON mi.medication_id = m.medication_id " +
                 "LEFT JOIN Doctor d ON mi.prescribing_doctor = d.doctor_id " +
+                 "JOIN MedicationList ml ON mi.medication_list_id = ml.medication_list_id " +
                 "WHERE mi.medication_info_id = ?";
         return jdbcTemplate.queryForObject(sql, new MedicationInfoRowMapper(), medicationInfoId);
     }
@@ -298,25 +299,28 @@ public class JdbcMedicationDao implements MedicationDao {
             medication.setGenericName(rs.getString("generic_name"));
             medication.setDrugClass(rs.getString("drug_class"));
             medication.setSubCategory(rs.getString("sub_category"));
+            medicationInfo.setMedicationId(medication);
 
-            // Set the MedicationId in MedicationInfo
-
-            // Set the other fields in MedicationInfo
+            // Create a Medication object and set its fields
             medicationInfo.setPatientId((UUID) rs.getObject("patient_id"));
             medicationInfo.setDosage(rs.getString("dosage"));
             medicationInfo.setFrequency(rs.getString("frequency"));
             medicationInfo.setRoute(rs.getString("route"));
             medicationInfo.setPrn(rs.getBoolean("is_prn"));
-            medicationInfo.setDateStarted(rs.getDate("date_started").toLocalDate());
+            medicationInfo.setDateStarted(
+                    rs.getDate("date_started") != null ? rs.getDate("date_started").toLocalDate() : LocalDate.now()
+            );
             medicationInfo.setCurrent(rs.getBoolean("is_current"));
             medicationInfo.setPharmacy(rs.getString("pharmacy"));
             medicationInfo.setComments(rs.getString("comments"));
 
-            // Assuming a separate query for Doctor to avoid nested joins here
+            // Prescribing Doctor
             UUID doctorId = (UUID) rs.getObject("prescribing_doctor");
             if (doctorId != null) {
                 Doctor doctor = new Doctor();
                 doctor.setDoctorId(doctorId);
+            doctor.setFirstName(rs.getString("first_name"));
+            doctor.setLastName(rs.getString("last_name"));
                 medicationInfo.setPrescribingDoctor(doctor);
             }
 
