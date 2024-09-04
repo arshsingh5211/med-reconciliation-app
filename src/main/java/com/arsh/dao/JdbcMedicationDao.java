@@ -61,23 +61,29 @@ public class JdbcMedicationDao implements MedicationDao {
     // Functional Methods for Manipulating Patient's Medication Lists
     @Override
     public MedicationList getMedicationListByPatientId(UUID patientId) {
-        String sql = "SELECT ml.medication_list_id, ml.last_changed, mi.*, m.*, d.* " +
+    // First, query for the MedicationList ID based on the patient ID
+    String medListIdSql = "SELECT medication_list_id FROM MedicationList WHERE patient_id = ?";
+    Integer medListId = jdbcTemplate.queryForObject(medListIdSql, Integer.class, patientId);
+
+    // Then query for the MedicationList details
+    String medListDetailsSql = "SELECT ml.medication_list_id, ml.patient_id, ml.last_changed, mi.*, m.*, d.* " +
                 "FROM MedicationList ml " +
                 "LEFT JOIN MedicationInfo mi ON ml.medication_list_id = mi.medication_list_id " +
                 "LEFT JOIN Medication m ON mi.medication_id = m.medication_id " +
                 "LEFT JOIN Doctor d ON mi.prescribing_doctor = d.doctor_id " +
-                "WHERE ml.patient_id = ?";
+            "WHERE ml.medication_list_id = ?";
 
-        List<MedicationDTO> medicationDtoList = jdbcTemplate.query(sql, new MedicationDTORowMapper(), patientId);
+    List<MedicationDTO> medicationDtoList = jdbcTemplate.query(medListDetailsSql, new MedicationDTORowMapper(), medListId);
 
         MedicationList medList = new MedicationList();
+        medList.setMedicationListId(medListId);
+        medList.setPatientId(patientId);
+
         if (!medicationDtoList.isEmpty()) {
             medList.setMedicationList(medicationDtoList);
             medList.setLastChanged(medicationDtoList.get(0).getLastChanged());
         } else {
-            // Handle case where there's no medication info for the patient
             medList.setMedicationList(new ArrayList<>());
-            // Set last changed or leave it null
         }
 
         return medList;
