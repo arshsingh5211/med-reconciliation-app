@@ -93,8 +93,22 @@ CREATE TABLE MedicationList (
     medication_list_id INT DEFAULT nextval('seq_medication_list_id'::regclass) PRIMARY KEY,
     patient_id UUID NOT NULL,
     last_changed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT FK_medication_list_patient FOREIGN KEY (patient_id) REFERENCES Patient(patient_id)
+    CONSTRAINT FK_medication_list_patient FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
+    CONSTRAINT unique_patient_list UNIQUE (patient_id)
 );
+
+CREATE OR REPLACE FUNCTION create_medication_list()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO MedicationList (patient_id) VALUES (NEW.patient_id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER after_patient_insert
+AFTER INSERT ON Patient
+FOR EACH ROW
+EXECUTE FUNCTION create_medication_list();
 
 -- Medication Table (General medication data)
 CREATE TABLE Medication (
@@ -194,15 +208,6 @@ VALUES
 (NULL, 'Metformin', 'Antidiabetic', 'Biguanides', true),
 ('Advil', 'Ibuprofen', 'Anti-inflammatory', 'NSAID', false),
 ('Lasix', 'Furosemide', 'Diuretic', 'Loop diuretics', false);
-
--- Insert test data into MedicationList table
-INSERT INTO MedicationList (patient_id, last_changed)
-VALUES
-((SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne'), CURRENT_TIMESTAMP),
-((SELECT patient_id FROM Patient WHERE first_name = 'Peter' AND last_name = 'Parker'), CURRENT_TIMESTAMP),
-((SELECT patient_id FROM Patient WHERE first_name = 'Diana' AND last_name = 'Prince'), CURRENT_TIMESTAMP),
-((SELECT patient_id FROM Patient WHERE first_name = 'Clark' AND last_name = 'Kent'), CURRENT_TIMESTAMP);
-
 
 -- Insert test data into MedicationInfo table
 INSERT INTO MedicationInfo (medication_id, medication_list_id, dosage, frequency, route, is_prn, date_started, is_current, prescribing_doctor, pharmacy, comments)
