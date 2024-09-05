@@ -14,7 +14,6 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -63,37 +62,20 @@ public class JdbcMedicationDao implements MedicationDao {
     @Override
     public MedicationList getMedicationListByPatientId(UUID patientId) {
         try {
-            // First, query for the MedicationList ID based on the patient ID
-            String medListIdSql = "SELECT medication_list_id FROM MedicationList WHERE patient_id = ?";
-            Integer medListId = jdbcTemplate.queryForObject(medListIdSql, Integer.class, patientId);
-            // Get updatedAt value
-            String updatedAtSql = "SELECT updated_at FROM MedicationList WHERE patient_id = ?";
-            LocalDateTime updatedAt = jdbcTemplate.queryForObject("SELECT updated_at FROM MedicationList WHERE patient_id = ?", LocalDateTime.class, patientId);
-            // Then query for the MedicationList details
-            String medListSql = "SELECT ml.medication_list_id, ml.patient_id, ml.updated_at, mi.*, m.*, d.* " +
+            // Query for the MedicationList details directly, including the medications
+            String sql = "SELECT ml.medication_list_id, ml.patient_id, ml.updated_at, mi.*, m.*, d.* " +
                     "FROM MedicationList ml " +
                     "LEFT JOIN MedicationInfo mi ON ml.medication_list_id = mi.medication_list_id " +
                     "LEFT JOIN Medication m ON mi.medication_id = m.medication_id " +
                     "LEFT JOIN Doctor d ON mi.prescribing_doctor_id = d.doctor_id " +
                     "WHERE ml.patient_id = ?";
 
-            List<MedicationDTO> medicationDtoList = jdbcTemplate.query(medListSql, new MedicationDTORowMapper(), patientId);
-
-            MedicationList medList = new MedicationList();
-            medList.setMedicationListId(medListId);
-            medList.setPatientId(patientId);
-
-            if (!medicationDtoList.isEmpty()) {
-                medList.setMedicationList(medicationDtoList);
-                medList.setUpdatedAt(updatedAt);
-            } else {
-                medList.setMedicationList(new ArrayList<>());
-            }
-            return medList;
+            return jdbcTemplate.queryForObject(sql, new MedicationListRowMapper(), patientId);
         } catch (EmptyResultDataAccessException e) {
             throw new PatientNotFoundException("Patient ID " + patientId + " does not exist.");
         }
     }
+
 
 
     @Override
@@ -260,11 +242,14 @@ public class JdbcMedicationDao implements MedicationDao {
                 med.setFrequency(rs.getString("frequency"));
                 med.setRoute(rs.getString("route"));
                 med.setPrn(rs.getBoolean("is_prn"));
-                med.setDateStarted(rs.getDate("date_started").toLocalDate());
+                med.setDateStarted(
+                        rs.getDate("date_started") != null ? rs.getDate("date_started").toLocalDate() : null
+                );
                 med.setCurrent(rs.getBoolean("is_current"));
                 med.setPrescribingDoctorId((UUID) rs.getObject("prescribing_doctor_id"));
                 med.setPharmacy(rs.getString("pharmacy"));
                 med.setComments(rs.getString("comments"));
+                med.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
                 medicationDtoList.add(med);
             } while (rs.next());
 
