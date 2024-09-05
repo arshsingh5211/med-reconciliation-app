@@ -1,9 +1,7 @@
 package com.arsh.dao;
 
 import com.arsh.dto.MedicationDTO;
-import com.arsh.model.Doctor;
 import com.arsh.model.Medication;
-import com.arsh.model.MedicationInfo;
 import com.arsh.model.MedicationList;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -66,14 +64,18 @@ public class JdbcMedicationDao implements MedicationDao {
     Integer medListId = jdbcTemplate.queryForObject(medListIdSql, Integer.class, patientId);
 
     // Then query for the MedicationList details
-    String medListDetailsSql = "SELECT ml.medication_list_id, ml.patient_id, ml.last_changed, mi.*, m.*, d.* " +
-                "FROM MedicationList ml " +
-                "LEFT JOIN MedicationInfo mi ON ml.medication_list_id = mi.medication_list_id " +
-                "LEFT JOIN Medication m ON mi.medication_id = m.medication_id " +
-                "LEFT JOIN Doctor d ON mi.prescribing_doctor = d.doctor_id " +
-            "WHERE ml.medication_list_id = ?";
+    String medListSql = "SELECT ml.medication_list_id, ml.patient_id, mi.prescribing_doctor_id, ml.last_changed, " +
+                               "mi.medication_info_id, m.medication_id, m.brand_name, m.generic_name, " +
+                               "m.drug_class, m.sub_category, mi.dosage, mi.frequency, mi.route, mi.is_prn, " +
+                               "mi.date_started, mi.is_current, d.doctor_id, " +
+                               "mi.pharmacy, mi.comments, mi.updated_at  " +
+                        "FROM MedicationList ml " +
+                        "LEFT JOIN MedicationInfo mi ON ml.medication_list_id = mi.medication_list_id " +
+                        "LEFT JOIN Medication m ON mi.medication_id = m.medication_id " +
+                        "LEFT JOIN Doctor d ON mi.prescribing_doctor_id = d.doctor_id " +
+                        "WHERE ml.patient_id = ?";
 
-    List<MedicationDTO> medicationDtoList = jdbcTemplate.query(medListDetailsSql, new MedicationDTORowMapper(), medListId);
+    List<MedicationDTO> medicationDtoList = jdbcTemplate.query(medListSql, new MedicationDTORowMapper(), medListId);
 
         MedicationList medList = new MedicationList();
         medList.setMedicationListId(medListId);
@@ -98,11 +100,8 @@ public class JdbcMedicationDao implements MedicationDao {
         // Get or Insert Medication
         Integer medicationId = getOrInsertMedication(medicationDTO);
 
-        // Get or Insert Doctor
-        UUID doctorId = getOrInsertDoctor(medicationDTO.getPrescribingDoctor());
-
         // Insert MedicationInfo
-        insertMedicationInfo(medListId, medicationId, doctorId, medicationDTO);
+        insertMedicationInfo(medListId, medicationId, medicationDTO.getPrescribingDoctorId(), medicationDTO);
     }
 
     // Helper method to get MedicationList ID
@@ -126,31 +125,11 @@ public class JdbcMedicationDao implements MedicationDao {
         }
     }
 
-    // Helper method to get or insert Doctor
-    private UUID getOrInsertDoctor(Doctor doctorDTO) {
-        if (doctorDTO == null) return null;
-
-        String docIdSql = "SELECT doctor_id FROM Doctor WHERE doctor_id = ?";
-        try {
-            return jdbcTemplate.queryForObject(docIdSql, UUID.class, doctorDTO.getDoctorId());
-        } catch (EmptyResultDataAccessException e) {
-        // Insert the doctor if not found
-            String insertDocSql = "INSERT INTO Doctor (first_name, last_name, specialty, phone_number, " +
-                "street_address, city, state, zip_code) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING doctor_id";
-            return jdbcTemplate.queryForObject(insertDocSql, UUID.class,
-                    doctorDTO.getFirstName(), doctorDTO.getLastName(),
-                    doctorDTO.getSpecialty(), doctorDTO.getPhoneNumber(),
-                    doctorDTO.getStreetAddress(), doctorDTO.getCity(),
-                    doctorDTO.getState(), doctorDTO.getZipCode());
-        }
-    }
-
 
     // Helper method to insert MedicationInfo
     private void insertMedicationInfo(Integer medListId, Integer medicationId, UUID doctorId, MedicationDTO medicationDTO) {
         String sql = "INSERT INTO MedicationInfo (medication_list_id, medication_id, dosage, frequency, route, " +
-                "is_prn, date_started, is_current, prescribing_doctor, pharmacy, comments) " +
+                "is_prn, date_started, is_current, prescribing_doctor_id, pharmacy, comments) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql, medListId,
                 medicationId,
@@ -161,9 +140,11 @@ public class JdbcMedicationDao implements MedicationDao {
 
     @Override
     public void updateMedicationOnMedList(MedicationDTO medicationDTO) {
-        String sql = "UPDATE MedicationInfo SET dosage = ?, frequency = ?, route = ?, is_prn = ?, " +
-                "date_started = ?, is_current = ?, prescribing_doctor = ?, pharmacy = ?, comments = ? " +
-                "WHERE medication_info_id = ?";
+        String sql = "UPDATE MedicationInfo " +
+                     "SET dosage = ?, frequency = ?, route = ?, is_prn = ?, " +
+                        "date_started = ?, is_current = ?, prescribing_doctor_id = ?, " +
+                        "pharmacy = ?, comments = ? " +
+                     "WHERE medication_info_id = ?";
         jdbcTemplate.update(sql,
                 medicationDTO.getDosage(),
                 medicationDTO.getFrequency(),
@@ -171,7 +152,7 @@ public class JdbcMedicationDao implements MedicationDao {
                 medicationDTO.isPrn(),
                 medicationDTO.getDateStarted(),
                 medicationDTO.isCurrent(),
-                medicationDTO.getPrescribingDoctor() != null ? medicationDTO.getPrescribingDoctor().getDoctorId() : null,
+                medicationDTO.getPrescribingDoctorId(),
                 medicationDTO.getPharmacy(),
                 medicationDTO.getComments(),
                 medicationDTO.getMedicationInfoId()
@@ -187,10 +168,13 @@ public class JdbcMedicationDao implements MedicationDao {
 
     @Override
     public MedicationDTO getMedicationFromMedListById(int medicationInfoId) {
-    String sql = "SELECT mi.*, m.*, d.*, ml.patient_id FROM MedicationInfo mi " +
-                "JOIN Medication m ON mi.medication_id = m.medication_id " +
-                "LEFT JOIN Doctor d ON mi.prescribing_doctor = d.doctor_id " +
-                 "JOIN MedicationList ml ON mi.medication_list_id = ml.medication_list_id " +
+    String sql = "SELECT mi.medication_info_id, m.medication_id, mi.prescribing_doctor_id, m.brand_name, m.generic_name, " +
+                    "m.drug_class, m.sub_category, mi.dosage, mi.frequency, mi.route, mi.is_prn, " +
+                    "mi.date_started, mi.is_current, d.doctor_id, " +
+                    "mi.pharmacy, mi.comments, mi.updated_at " +
+                 "FROM MedicationInfo mi " +
+                    "JOIN Medication m ON mi.medication_id = m.medication_id " +
+                    "LEFT JOIN Doctor d ON mi.prescribing_doctor_id = d.doctor_id " +
                 "WHERE mi.medication_info_id = ?";
         return jdbcTemplate.queryForObject(sql, new MedicationDTORowMapper(), medicationInfoId);
     }
@@ -228,17 +212,10 @@ public class JdbcMedicationDao implements MedicationDao {
             );
             medicationDTO.setCurrent(rs.getBoolean("is_current"));
             // Handle optional prescribing doctor
-            UUID doctorId = (UUID) rs.getObject("prescribing_doctor");
-            if (doctorId != null) {
-                Doctor doctor = new Doctor();
-                doctor.setDoctorId(doctorId);
-                doctor.setFirstName(rs.getString("first_name"));
-                doctor.setLastName(rs.getString("last_name"));
-                medicationDTO.setPrescribingDoctor(doctor);
-            }
+            medicationDTO.setPrescribingDoctorId((UUID) rs.getObject("prescribing_doctor_id"));
             medicationDTO.setPharmacy(rs.getString("pharmacy"));
             medicationDTO.setComments(rs.getString("comments"));
-            medicationDTO.setLastChanged(rs.getTimestamp("last_changed").toLocalDateTime());
+            medicationDTO.setLastChanged(rs.getTimestamp("updated_at").toLocalDateTime());
             return medicationDTO;
         }
     }
@@ -266,15 +243,7 @@ public class JdbcMedicationDao implements MedicationDao {
                 med.setPrn(rs.getBoolean("is_prn"));
                 med.setDateStarted(rs.getDate("date_started").toLocalDate());
                 med.setCurrent(rs.getBoolean("is_current"));
-                // Handle optional prescribing doctor
-                UUID doctorId = (UUID) rs.getObject("prescribing_doctor");
-                if (doctorId != null) {
-                    Doctor doctor = new Doctor();
-                    doctor.setDoctorId(doctorId);
-                    doctor.setFirstName(rs.getString("first_name"));
-                    doctor.setLastName(rs.getString("last_name"));
-                    med.setPrescribingDoctor(doctor);
-                }
+                med.setPrescribingDoctorId((UUID) rs.getObject("prescribing_doctor_id"));
                 med.setPharmacy(rs.getString("pharmacy"));
                 med.setComments(rs.getString("comments"));
                 medicationDtoList.add(med);
@@ -284,47 +253,4 @@ public class JdbcMedicationDao implements MedicationDao {
             return medList;
         }
     }
-
-    // RowMapper for MedicationInfo - i dont want to use this, use dto instead
-//    private static class MedicationInfoRowMapper implements RowMapper<MedicationInfo> {
-//        @Override
-//        public MedicationInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
-//            MedicationInfo medicationInfo = new MedicationInfo();
-//            medicationInfo.setMedicationInfoId(rs.getInt("medication_info_id"));
-//
-//            // Create a Medication object and set its fields
-//            Medication medication = new Medication();
-//            medication.setMedicationId(rs.getInt("medication_id"));
-//            medication.setBrandName(rs.getString("brand_name"));
-//            medication.setGenericName(rs.getString("generic_name"));
-//            medication.setDrugClass(rs.getString("drug_class"));
-//            medication.setSubCategory(rs.getString("sub_category"));
-//            medicationInfo.setMedicationId(medication);
-//
-//            // Create a Medication object and set its fields
-//            medicationInfo.setPatientId((UUID) rs.getObject("patient_id"));
-//            medicationInfo.setDosage(rs.getString("dosage"));
-//            medicationInfo.setFrequency(rs.getString("frequency"));
-//            medicationInfo.setRoute(rs.getString("route"));
-//            medicationInfo.setPrn(rs.getBoolean("is_prn"));
-//            medicationInfo.setDateStarted(
-//                    rs.getDate("date_started") != null ? rs.getDate("date_started").toLocalDate() : LocalDate.now()
-//            );
-//            medicationInfo.setCurrent(rs.getBoolean("is_current"));
-//            medicationInfo.setPharmacy(rs.getString("pharmacy"));
-//            medicationInfo.setComments(rs.getString("comments"));
-//
-//            // Prescribing Doctor
-//            UUID doctorId = (UUID) rs.getObject("prescribing_doctor");
-//            if (doctorId != null) {
-//                Doctor doctor = new Doctor();
-//                doctor.setDoctorId(doctorId);
-//            doctor.setFirstName(rs.getString("first_name"));
-//            doctor.setLastName(rs.getString("last_name"));
-//                medicationInfo.setPrescribingDoctor(doctor);
-//            }
-//
-//            return medicationInfo;
-//        }
-//    }
 }

@@ -1,12 +1,12 @@
 package com.arsh.dto;
 
-import com.arsh.model.Doctor;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 // todo: @BrandOrGeneric - should i add this here?
@@ -38,7 +38,7 @@ public class MedicationDTO {
     @NotNull(message = "Date started cannot be null")
     private LocalDate dateStarted;
     private boolean isCurrent;
-    private Doctor prescribingDoctor;
+    private UUID prescribingDoctorId;
 
     @Size(max = 100, message = "Pharmacy must be less than or equal to 100 characters")
     private String pharmacy;

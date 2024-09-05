@@ -139,14 +139,14 @@ CREATE TABLE MedicationInfo (
     is_prn BOOLEAN,
     date_started DATE,
     is_current BOOLEAN,
-    prescribing_doctor UUID,
+    prescribing_doctor_id UUID,
     pharmacy VARCHAR(100),
     comments TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT FK_medication_info_medication_list FOREIGN KEY (medication_list_id) REFERENCES MedicationList(medication_list_id),
     CONSTRAINT FK_medication_info_medication FOREIGN KEY (medication_id) REFERENCES Medication(medication_id),
-    CONSTRAINT FK_medication_info_doctor FOREIGN KEY (prescribing_doctor) REFERENCES Doctor(doctor_id)
+    CONSTRAINT FK_medication_info_doctor FOREIGN KEY (prescribing_doctor_id) REFERENCES Doctor(doctor_id)
 );
 
 -- Audit Log Table
@@ -210,7 +210,7 @@ VALUES
 ('Lasix', 'Furosemide', 'Diuretic', 'Loop diuretics', false);
 
 -- Insert test data into MedicationInfo table
-INSERT INTO MedicationInfo (medication_id, medication_list_id, dosage, frequency, route, is_prn, date_started, is_current, prescribing_doctor, pharmacy, comments)
+INSERT INTO MedicationInfo (medication_id, medication_list_id, dosage, frequency, route, is_prn, date_started, is_current, prescribing_doctor_id, pharmacy, comments)
 VALUES
 ((SELECT medication_id FROM Medication WHERE brand_name = 'Tylenol'),
  (SELECT medication_list_id FROM MedicationList WHERE patient_id = (SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne')),
