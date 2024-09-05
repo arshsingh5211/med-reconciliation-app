@@ -1,6 +1,8 @@
 package com.arsh.dao;
 
 import com.arsh.dto.MedicationDTO;
+import com.arsh.exception.DoctorNotFoundException;
+import com.arsh.exception.PatientNotFoundException;
 import com.arsh.model.Medication;
 import com.arsh.model.MedicationList;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -59,36 +62,37 @@ public class JdbcMedicationDao implements MedicationDao {
     // Functional Methods for Manipulating Patient's Medication Lists
     @Override
     public MedicationList getMedicationListByPatientId(UUID patientId) {
-    // First, query for the MedicationList ID based on the patient ID
-    String medListIdSql = "SELECT medication_list_id FROM MedicationList WHERE patient_id = ?";
-    Integer medListId = jdbcTemplate.queryForObject(medListIdSql, Integer.class, patientId);
+        try {
+            // First, query for the MedicationList ID based on the patient ID
+            String medListIdSql = "SELECT medication_list_id FROM MedicationList WHERE patient_id = ?";
+            Integer medListId = jdbcTemplate.queryForObject(medListIdSql, Integer.class, patientId);
+            // Get updatedAt value
+            String updatedAtSql = "SELECT updated_at FROM MedicationList WHERE patient_id = ?";
+            LocalDateTime updatedAt = jdbcTemplate.queryForObject("SELECT updated_at FROM MedicationList WHERE patient_id = ?", LocalDateTime.class, patientId);
+            // Then query for the MedicationList details
+            String medListSql = "SELECT ml.medication_list_id, ml.patient_id, ml.updated_at, mi.*, m.*, d.* " +
+                    "FROM MedicationList ml " +
+                    "LEFT JOIN MedicationInfo mi ON ml.medication_list_id = mi.medication_list_id " +
+                    "LEFT JOIN Medication m ON mi.medication_id = m.medication_id " +
+                    "LEFT JOIN Doctor d ON mi.prescribing_doctor_id = d.doctor_id " +
+                    "WHERE ml.patient_id = ?";
 
-    // Then query for the MedicationList details
-    String medListSql = "SELECT ml.medication_list_id, ml.patient_id, mi.prescribing_doctor_id, ml.last_changed, " +
-                               "mi.medication_info_id, m.medication_id, m.brand_name, m.generic_name, " +
-                               "m.drug_class, m.sub_category, mi.dosage, mi.frequency, mi.route, mi.is_prn, " +
-                               "mi.date_started, mi.is_current, d.doctor_id, " +
-                               "mi.pharmacy, mi.comments, mi.updated_at  " +
-                        "FROM MedicationList ml " +
-                        "LEFT JOIN MedicationInfo mi ON ml.medication_list_id = mi.medication_list_id " +
-                        "LEFT JOIN Medication m ON mi.medication_id = m.medication_id " +
-                        "LEFT JOIN Doctor d ON mi.prescribing_doctor_id = d.doctor_id " +
-                        "WHERE ml.patient_id = ?";
+            List<MedicationDTO> medicationDtoList = jdbcTemplate.query(medListSql, new MedicationDTORowMapper(), patientId);
 
-    List<MedicationDTO> medicationDtoList = jdbcTemplate.query(medListSql, new MedicationDTORowMapper(), medListId);
+            MedicationList medList = new MedicationList();
+            medList.setMedicationListId(medListId);
+            medList.setPatientId(patientId);
 
-        MedicationList medList = new MedicationList();
-        medList.setMedicationListId(medListId);
-        medList.setPatientId(patientId);
-
-        if (!medicationDtoList.isEmpty()) {
-            medList.setMedicationList(medicationDtoList);
-            medList.setLastChanged(medicationDtoList.get(0).getLastChanged());
-        } else {
-            medList.setMedicationList(new ArrayList<>());
+            if (!medicationDtoList.isEmpty()) {
+                medList.setMedicationList(medicationDtoList);
+                medList.setUpdatedAt(updatedAt);
+            } else {
+                medList.setMedicationList(new ArrayList<>());
+            }
+            return medList;
+        } catch (EmptyResultDataAccessException e) {
+            throw new PatientNotFoundException("Patient ID " + patientId + " does not exist.");
         }
-
-        return medList;
     }
 
 
@@ -101,14 +105,20 @@ public class JdbcMedicationDao implements MedicationDao {
         Integer medicationId = getOrInsertMedication(medicationDTO);
 
         // Insert MedicationInfo
-        insertMedicationInfo(medListId, medicationId, medicationDTO.getPrescribingDoctorId(), medicationDTO);
+        insertMedicationInfo(medListId, medicationId, getDoctor(medicationDTO.
+                             getPrescribingDoctorId()), medicationDTO);
     }
 
     // Helper method to get MedicationList ID
     private Integer getMedicationListId(UUID patientId) {
         String sql = "SELECT medication_list_id FROM MedicationList WHERE patient_id = ?";
+    try {
         return jdbcTemplate.queryForObject(sql, Integer.class, patientId);
+    } catch (EmptyResultDataAccessException e) {
+        throw new PatientNotFoundException("No patient found for patient ID: " + patientId);
     }
+}
+
 
     // Helper method to get or insert Medication
     private Integer getOrInsertMedication(MedicationDTO medicationDTO) {
@@ -125,17 +135,25 @@ public class JdbcMedicationDao implements MedicationDao {
         }
     }
 
+    private UUID getDoctor(UUID doctorId) {
+        String sql = "SELECT doctor_id FROM Doctor WHERE doctor_id = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, UUID.class, doctorId);
+        } catch (EmptyResultDataAccessException e) {
+            throw new DoctorNotFoundException("Doctor not found for ID: " + doctorId);
+        }
+    }
 
     // Helper method to insert MedicationInfo
     private void insertMedicationInfo(Integer medListId, Integer medicationId, UUID doctorId, MedicationDTO medicationDTO) {
         String sql = "INSERT INTO MedicationInfo (medication_list_id, medication_id, dosage, frequency, route, " +
-                "is_prn, date_started, is_current, prescribing_doctor_id, pharmacy, comments) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                "is_prn, date_started, is_current, prescribing_doctor_id, pharmacy, comments, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         jdbcTemplate.update(sql, medListId,
                 medicationId,
                 medicationDTO.getDosage(), medicationDTO.getFrequency(), medicationDTO.getRoute(),
                 medicationDTO.isPrn(), medicationDTO.getDateStarted(), medicationDTO.isCurrent(),
-                doctorId, medicationDTO.getPharmacy(), medicationDTO.getComments());
+                doctorId, medicationDTO.getPharmacy(), medicationDTO.getComments(), medicationDTO.getUpdatedAt());
     }
 
     @Override
@@ -143,7 +161,7 @@ public class JdbcMedicationDao implements MedicationDao {
         String sql = "UPDATE MedicationInfo " +
                      "SET dosage = ?, frequency = ?, route = ?, is_prn = ?, " +
                         "date_started = ?, is_current = ?, prescribing_doctor_id = ?, " +
-                        "pharmacy = ?, comments = ? " +
+                        "pharmacy = ?, comments = ?, updated_at " +
                      "WHERE medication_info_id = ?";
         jdbcTemplate.update(sql,
                 medicationDTO.getDosage(),
@@ -155,6 +173,7 @@ public class JdbcMedicationDao implements MedicationDao {
                 medicationDTO.getPrescribingDoctorId(),
                 medicationDTO.getPharmacy(),
                 medicationDTO.getComments(),
+                medicationDTO.getUpdatedAt(),
                 medicationDTO.getMedicationInfoId()
         );
     }
@@ -215,7 +234,7 @@ public class JdbcMedicationDao implements MedicationDao {
             medicationDTO.setPrescribingDoctorId((UUID) rs.getObject("prescribing_doctor_id"));
             medicationDTO.setPharmacy(rs.getString("pharmacy"));
             medicationDTO.setComments(rs.getString("comments"));
-            medicationDTO.setLastChanged(rs.getTimestamp("updated_at").toLocalDateTime());
+            medicationDTO.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
             return medicationDTO;
         }
     }
@@ -227,7 +246,7 @@ public class JdbcMedicationDao implements MedicationDao {
             MedicationList medList = new MedicationList();
             medList.setMedicationListId(rs.getInt("medication_list_id"));
             medList.setPatientId(rs.getObject("patient_id", UUID.class));
-            medList.setLastChanged(rs.getTimestamp("last_changed").toLocalDateTime());
+            medList.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
 
             List<MedicationDTO> medicationDtoList = new ArrayList<>();
             do {

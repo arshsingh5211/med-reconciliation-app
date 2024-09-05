@@ -43,7 +43,7 @@ public class MedicationDTO {
     @Size(max = 100, message = "Pharmacy must be less than or equal to 100 characters")
     private String pharmacy;
 
-    private LocalDateTime lastChanged;
+    private LocalDateTime updatedAt;
 
     @Size(max = 500, message = "Comments must be less than or equal to 500 characters")
     private String comments;
