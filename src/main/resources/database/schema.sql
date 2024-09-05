@@ -24,6 +24,8 @@ CREATE TABLE Doctor (
     city VARCHAR(50),
     state VARCHAR(20),
     zip_code VARCHAR(10),
+    dea_number VARCHAR(9) CHECK (dea_number ~ '^[A-Z]{2}[0-9]{7}$'),
+    npi CHAR(10) CHECK (npi ~ '^[0-9]{10}$'),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -93,10 +95,13 @@ CREATE TABLE MedicationList (
     medication_list_id INT DEFAULT nextval('seq_medication_list_id'::regclass) PRIMARY KEY,
     patient_id UUID NOT NULL,
     last_changed TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT FK_medication_list_patient FOREIGN KEY (patient_id) REFERENCES Patient(patient_id),
     CONSTRAINT unique_patient_list UNIQUE (patient_id)
 );
-
+--------------------------------------------------------------
+-- Create the trigger function to create a med list as soon as a new patient is created
 CREATE OR REPLACE FUNCTION create_medication_list()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -109,6 +114,8 @@ CREATE TRIGGER after_patient_insert
 AFTER INSERT ON Patient
 FOR EACH ROW
 EXECUTE FUNCTION create_medication_list();
+
+--------------------------------------------------------------
 
 -- Medication Table (General medication data)
 CREATE TABLE Medication (
@@ -139,15 +146,46 @@ CREATE TABLE MedicationInfo (
     is_prn BOOLEAN,
     date_started DATE,
     is_current BOOLEAN,
-    prescribing_doctor UUID,
+    prescribing_doctor_id UUID,
     pharmacy VARCHAR(100),
     comments TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT FK_medication_info_medication_list FOREIGN KEY (medication_list_id) REFERENCES MedicationList(medication_list_id),
     CONSTRAINT FK_medication_info_medication FOREIGN KEY (medication_id) REFERENCES Medication(medication_id),
-    CONSTRAINT FK_medication_info_doctor FOREIGN KEY (prescribing_doctor) REFERENCES Doctor(doctor_id)
+    CONSTRAINT FK_medication_info_doctor FOREIGN KEY (prescribing_doctor_id) REFERENCES Doctor(doctor_id)
 );
+
+-- Trigger for MedicationInfo to update only its own updated_at field
+CREATE OR REPLACE FUNCTION update_medication_info_last_changed()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_medication_info
+BEFORE UPDATE ON MedicationInfo
+FOR EACH ROW
+EXECUTE FUNCTION update_medication_info_last_changed();
+
+-- Trigger for MedicationList to update updated_at based on MedicationInfo changes
+CREATE OR REPLACE FUNCTION update_med_list_last_changed()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE MedicationList
+    SET updated_at = NOW()
+    WHERE medication_list_id = NEW.medication_list_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_med_list
+AFTER INSERT OR UPDATE OR DELETE ON MedicationInfo
+FOR EACH ROW
+EXECUTE FUNCTION update_med_list_last_changed();
+
 
 -- Audit Log Table
 CREATE TABLE AuditLog (
@@ -161,20 +199,20 @@ CREATE TABLE AuditLog (
 );
 
 -- Insert test data into Doctor table
-INSERT INTO Doctor (first_name, last_name, specialty, phone_number, street_address, city, state, zip_code)
+INSERT INTO Doctor (doctor_id, first_name, last_name, specialty, phone_number, street_address, city, state, zip_code)
 VALUES
-('Leslie', 'Thompkins', 'Psychiatrist', '555-1001', '1 Doctor’s Way', 'Gotham', 'NJ', '07001'),
-('Curt', 'Connors', 'Geneticist', '555-2002', '2 Genetic Lane', 'New York', 'NY', '10001'),
-('Julia', 'Kapatelis', 'Anthropologist', '555-3003', '3 Scholar Blvd', 'Themyscira', 'GR', '00001'),
-('Emil', 'Hamilton', 'Physicist', '555-4004', '4 Science Rd', 'Metropolis', 'NY', '10001');
+('223afefd-a5c8-4b59-be72-0943c8918a70','Leslie', 'Thompkins', 'Psychiatrist', '555-1001', '1 Doctor’s Way', 'Gotham', 'NJ', '07001'),
+('223afefd-a5c8-4b59-be72-0943c8918a71','Curt', 'Connors', 'Geneticist', '555-2002', '2 Genetic Lane', 'New York', 'NY', '10001'),
+('223afefd-a5c8-4b59-be72-0943c8918a72','Julia', 'Kapatelis', 'Anthropologist', '555-3003', '3 Scholar Blvd', 'Themyscira', 'GR', '00001'),
+('223afefd-a5c8-4b59-be72-0943c8918a73','Emil', 'Hamilton', 'Physicist', '555-4004', '4 Science Rd', 'Metropolis', 'NY', '10001');
 
 -- Insert test data into Patient table
-INSERT INTO Patient (first_name, last_name)
+INSERT INTO Patient (patient_id, first_name, last_name)
 VALUES
-('Bruce', 'Wayne'),
-('Peter', 'Parker'),
-('Diana', 'Prince'),
-('Clark', 'Kent');
+('84b350b2-2dc1-4419-8b97-c4c6be818c8c', 'Bruce', 'Wayne'),
+('84b350b2-2dc1-4419-8b97-c4c6be818c8d', 'Peter', 'Parker'),
+('84b350b2-2dc1-4419-8b97-c4c6be818c8e', 'Diana', 'Prince'),
+('84b350b2-2dc1-4419-8b97-c4c6be818c8f', 'Clark', 'Kent');
 
 -- Insert test data into PatientInfo table
 INSERT INTO PatientInfo (patient_id, dob, phone_number, street_address, city, state, zip_code, primary_doctor, emergency_contact_name, emergency_contact_phone)
@@ -210,7 +248,7 @@ VALUES
 ('Lasix', 'Furosemide', 'Diuretic', 'Loop diuretics', false);
 
 -- Insert test data into MedicationInfo table
-INSERT INTO MedicationInfo (medication_id, medication_list_id, dosage, frequency, route, is_prn, date_started, is_current, prescribing_doctor, pharmacy, comments)
+INSERT INTO MedicationInfo (medication_id, medication_list_id, dosage, frequency, route, is_prn, date_started, is_current, prescribing_doctor_id, pharmacy, comments)
 VALUES
 ((SELECT medication_id FROM Medication WHERE brand_name = 'Tylenol'),
  (SELECT medication_list_id FROM MedicationList WHERE patient_id = (SELECT patient_id FROM Patient WHERE first_name = 'Bruce' AND last_name = 'Wayne')),

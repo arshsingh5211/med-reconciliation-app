@@ -16,5 +16,5 @@ public class MedicationList {
     private int medicationListId;
     private UUID patientId;
     private List<MedicationDTO> medicationList;
-    private LocalDateTime lastChanged;
+    private LocalDateTime updatedAt;
 }

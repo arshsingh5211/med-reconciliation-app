@@ -37,7 +37,7 @@ public class MedicationInfo {
     @NotNull(message = "Date started cannot be null")
     private LocalDate dateStarted;
     private boolean isCurrent;
-    private Doctor prescribingDoctor;
+    private UUID prescribingDoctorId;
 
     @Size(max = 100, message = "Pharmacy must be less than or equal to 100 characters")
     private String pharmacy;

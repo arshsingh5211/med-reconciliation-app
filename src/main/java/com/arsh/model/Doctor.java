@@ -20,4 +20,6 @@ public class Doctor {
     private String city;
     private String state;
     private String zipCode;
+    private String deaNumber;
+    private String npi;
 }
