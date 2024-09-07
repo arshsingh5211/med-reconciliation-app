@@ -22,7 +22,7 @@ jobs:
       - name: Set up Docker
         uses: KengoTODA/actions-setup-docker-compose@v1
         with:
-          version: '3'
+          version: '2.14.2'
 
       - name: Log in to Docker
         uses: docker/login-action@v3
