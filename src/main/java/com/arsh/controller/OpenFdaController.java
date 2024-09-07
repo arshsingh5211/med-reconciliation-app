@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/FDAmedications")
+@RequestMapping("/medications")
 public class OpenFdaController {
     private final OpenFdaService openFdaService;
 

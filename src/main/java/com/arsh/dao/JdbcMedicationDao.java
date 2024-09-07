@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -216,7 +217,8 @@ public class JdbcMedicationDao implements MedicationDao {
             medicationDTO.setPrescribingDoctorId((UUID) rs.getObject("prescribing_doctor_id"));
             medicationDTO.setPharmacy(rs.getString("pharmacy"));
             medicationDTO.setComments(rs.getString("comments"));
-            medicationDTO.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+            LocalDateTime testTime = LocalDateTime.parse("2022-01-01T11:11:11.11111");
+            medicationDTO.setUpdatedAt(testTime); //rs.getTimestamp("updated_at").toLocalDateTime());
             return medicationDTO;
         }
     }
@@ -228,8 +230,9 @@ public class JdbcMedicationDao implements MedicationDao {
             MedicationList medList = new MedicationList();
             medList.setMedicationListId(rs.getInt("medication_list_id"));
             medList.setPatientId(rs.getObject("patient_id", UUID.class));
-            medList.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
-
+//            medList.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+            LocalDateTime testTime3 = LocalDateTime.parse("2023-03-03T13:13:11.11113");
+            medList.setUpdatedAt(testTime3); //rs.getTimestamp("updated_at").toLocalDateTime());
             List<MedicationDTO> medicationDtoList = new ArrayList<>();
             do {
                 MedicationDTO med = new MedicationDTO();
@@ -249,7 +252,9 @@ public class JdbcMedicationDao implements MedicationDao {
                 med.setPrescribingDoctorId((UUID) rs.getObject("prescribing_doctor_id"));
                 med.setPharmacy(rs.getString("pharmacy"));
                 med.setComments(rs.getString("comments"));
-                med.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                //med.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                LocalDateTime testTime = LocalDateTime.parse("2022-03-03T12:22:12.22222");
+                med.setUpdatedAt(testTime); //rs.getTimestamp("updated_at").toLocalDateTime());
                 medicationDtoList.add(med);
             } while (rs.next());
 
