@@ -13,8 +13,8 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -64,7 +64,7 @@ public class JdbcMedicationDao implements MedicationDao {
     public MedicationList getMedicationListByPatientId(UUID patientId) {
         try {
             // Query for the MedicationList details directly, including the medications
-            String sql = "SELECT ml.medication_list_id, ml.patient_id, ml.updated_at, mi.*, m.*, d.* " +
+            String sql = "SELECT ml.medication_list_id, ml.patient_id, mi.updated_at AS mi_updated_at, ml.updated_at, mi.*, m.*, d.* " +
                     "FROM MedicationList ml " +
                     "LEFT JOIN MedicationInfo mi ON ml.medication_list_id = mi.medication_list_id " +
                     "LEFT JOIN Medication m ON mi.medication_id = m.medication_id " +
@@ -144,7 +144,7 @@ public class JdbcMedicationDao implements MedicationDao {
         String sql = "UPDATE MedicationInfo " +
                      "SET dosage = ?, frequency = ?, route = ?, is_prn = ?, " +
                         "date_started = ?, is_current = ?, prescribing_doctor_id = ?, " +
-                        "pharmacy = ?, comments = ?, updated_at " +
+                        "pharmacy = ?, comments = ?, updated_at = ? " +
                      "WHERE medication_info_id = ?";
         jdbcTemplate.update(sql,
                 medicationDTO.getDosage(),
@@ -217,8 +217,7 @@ public class JdbcMedicationDao implements MedicationDao {
             medicationDTO.setPrescribingDoctorId((UUID) rs.getObject("prescribing_doctor_id"));
             medicationDTO.setPharmacy(rs.getString("pharmacy"));
             medicationDTO.setComments(rs.getString("comments"));
-            LocalDateTime testTime = LocalDateTime.parse("2022-01-01T11:11:11.11111");
-            medicationDTO.setUpdatedAt(testTime); //rs.getTimestamp("updated_at").toLocalDateTime());
+            medicationDTO.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
             return medicationDTO;
         }
     }
@@ -230,9 +229,7 @@ public class JdbcMedicationDao implements MedicationDao {
             MedicationList medList = new MedicationList();
             medList.setMedicationListId(rs.getInt("medication_list_id"));
             medList.setPatientId(rs.getObject("patient_id", UUID.class));
-//            medList.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
-            LocalDateTime testTime3 = LocalDateTime.parse("2023-03-03T13:13:11.11113");
-            medList.setUpdatedAt(testTime3); //rs.getTimestamp("updated_at").toLocalDateTime());
+            medList.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
             List<MedicationDTO> medicationDtoList = new ArrayList<>();
             do {
                 MedicationDTO med = new MedicationDTO();
@@ -252,9 +249,9 @@ public class JdbcMedicationDao implements MedicationDao {
                 med.setPrescribingDoctorId((UUID) rs.getObject("prescribing_doctor_id"));
                 med.setPharmacy(rs.getString("pharmacy"));
                 med.setComments(rs.getString("comments"));
-                //med.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
-                LocalDateTime testTime = LocalDateTime.parse("2022-03-03T12:22:12.22222");
-                med.setUpdatedAt(testTime); //rs.getTimestamp("updated_at").toLocalDateTime());
+                Timestamp timestamp = rs.getTimestamp("mi_updated_at");
+                med.setUpdatedAt(timestamp != null ? timestamp.toLocalDateTime() : null);
+//                med.setUpdatedAt(rs.getTimestamp("mi_updated_at").toLocalDateTime());
                 medicationDtoList.add(med);
             } while (rs.next());
 

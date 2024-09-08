@@ -157,20 +157,18 @@ CREATE TABLE MedicationInfo (
 );
 
 -- Trigger for MedicationInfo to update only its own updated_at field
---CREATE OR REPLACE FUNCTION update_medication_info_last_changed()
---RETURNS TRIGGER AS $$
---BEGIN
---    UPDATE MedicationInfo
---    SET updated_at = NOW()
---    WHERE medication_info_id = NEW.medication_info_id;
---    RETURN NEW;
---END;
---$$ LANGUAGE plpgsql;
---
---CREATE TRIGGER trigger_update_medication_info
---BEFORE UPDATE ON MedicationInfo
---FOR EACH ROW
---EXECUTE FUNCTION update_medication_info_last_changed();
+CREATE OR REPLACE FUNCTION update_medication_info_last_changed()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_medication_info
+BEFORE INSERT OR UPDATE ON MedicationInfo
+FOR EACH ROW
+EXECUTE FUNCTION update_medication_info_last_changed();
 
 -- Trigger for MedicationList to update updated_at based on MedicationInfo changes
 CREATE OR REPLACE FUNCTION update_med_list_last_changed()
