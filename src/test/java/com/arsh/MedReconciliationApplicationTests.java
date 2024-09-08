@@ -1,4 +1,4 @@
-package com.arsh.med_reconciliation_app;
+package com.arsh;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
