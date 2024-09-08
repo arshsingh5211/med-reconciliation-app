@@ -166,7 +166,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trigger_update_medication_info
-BEFORE UPDATE ON MedicationInfo
+BEFORE INSERT OR UPDATE ON MedicationInfo
 FOR EACH ROW
 EXECUTE FUNCTION update_medication_info_last_changed();
 
@@ -204,7 +204,8 @@ VALUES
 ('223afefd-a5c8-4b59-be72-0943c8918a70','Leslie', 'Thompkins', 'Psychiatrist', '555-1001', '1 Doctor’s Way', 'Gotham', 'NJ', '07001'),
 ('223afefd-a5c8-4b59-be72-0943c8918a71','Curt', 'Connors', 'Geneticist', '555-2002', '2 Genetic Lane', 'New York', 'NY', '10001'),
 ('223afefd-a5c8-4b59-be72-0943c8918a72','Julia', 'Kapatelis', 'Anthropologist', '555-3003', '3 Scholar Blvd', 'Themyscira', 'GR', '00001'),
-('223afefd-a5c8-4b59-be72-0943c8918a73','Emil', 'Hamilton', 'Physicist', '555-4004', '4 Science Rd', 'Metropolis', 'NY', '10001');
+('223afefd-a5c8-4b59-be72-0943c8918a73','Emil', 'Hamilton', 'Physicist', '555-4004', '4 Science Rd', 'Metropolis', 'NY', '10001'),
+('3345efee-abcd-1234-9abc-5678901234ff','Stefan','Vuković', 'Sports Medicine', '555-1010','10 Doctor’s Lane', 'Belgrade', 'VO', '11000');
 
 -- Insert test data into Patient table
 INSERT INTO Patient (patient_id, first_name, last_name)

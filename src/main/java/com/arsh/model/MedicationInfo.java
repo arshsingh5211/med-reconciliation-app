@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -41,6 +42,8 @@ public class MedicationInfo {
 
     @Size(max = 100, message = "Pharmacy must be less than or equal to 100 characters")
     private String pharmacy;
+
+    private LocalDateTime updatedAt;
 
     @Size(max = 500, message = "Comments must be less than or equal to 500 characters")
     private String comments;

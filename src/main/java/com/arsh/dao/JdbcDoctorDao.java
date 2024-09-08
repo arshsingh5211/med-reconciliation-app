@@ -2,6 +2,7 @@ package com.arsh.dao;
 
 import com.arsh.model.Doctor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -19,6 +20,7 @@ public class JdbcDoctorDao implements DoctorDao{
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    @Cacheable("doctorCache")
     public Doctor getDoctorById(UUID doctorId) {
         String sql = "SELECT * FROM doctor WHERE doctor_id = ?";
         return jdbcTemplate.queryForObject(sql, new Object[]{doctorId}, new DoctorRowMapper());

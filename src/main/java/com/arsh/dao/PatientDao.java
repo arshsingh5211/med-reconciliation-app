@@ -7,6 +7,6 @@ import java.util.UUID;
 public interface PatientDao {
     PatientDTO getPatient(UUID patientId);
     List<PatientDTO> getAllPatients();
-    void savePatient(PatientDTO patientDTO);
+    PatientDTO savePatient(PatientDTO patientDTO);
     void deletePatient(UUID patientId);
 }
