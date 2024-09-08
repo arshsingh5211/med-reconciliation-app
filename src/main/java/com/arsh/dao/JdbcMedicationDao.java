@@ -2,14 +2,18 @@ package com.arsh.dao;
 
 import com.arsh.dto.MedicationDTO;
 import com.arsh.exception.DoctorNotFoundException;
+import com.arsh.exception.MedicationNotFoundException;
 import com.arsh.exception.PatientNotFoundException;
 import com.arsh.model.Medication;
 import com.arsh.model.MedicationList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -17,11 +21,13 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 @Repository
 public class JdbcMedicationDao implements MedicationDao {
 
+    private static final Logger logger = LoggerFactory.getLogger(JdbcMedicationDao.class);
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -34,27 +40,54 @@ public class JdbcMedicationDao implements MedicationDao {
     @Override
     public Medication getMedicationById(int medicationId) {
         String sql = "SELECT * FROM Medication WHERE medication_id = ?";
-        return jdbcTemplate.queryForObject(sql, new MedicationRowMapper(), medicationId);
+        try {
+            Medication medication = jdbcTemplate.queryForObject(sql, new MedicationRowMapper(), medicationId);
+            logger.info("Successfully fetched medication with ID: {}", medicationId);
+            return medication;
+        } catch (EmptyResultDataAccessException e) {
+            logger.error("Medication with ID {} not found: {}", medicationId, e.getMessage());
+            throw new MedicationNotFoundException("Medication not found with ID: " + medicationId);
+        } catch (Exception e) {
+            logger.error("Error fetching medication with ID {}: {}", medicationId, e.getMessage());
+            throw new RuntimeException("Failed to fetch medication", e);
+        }
     }
 
     @Override
     public void saveMedication(Medication medication) {
-        String sql = "INSERT INTO Medication (brand_name, generic_name, drug_class, sub_category) " +
-                "VALUES (?, ?, ?, ?)";
-        jdbcTemplate.update(sql, medication.getBrandName(), medication.getGenericName(),
-                medication.getDrugClass(), medication.getSubCategory());
+        String sql = "INSERT INTO Medication (brand_name, generic_name, drug_class, sub_category) VALUES (?, ?, ?, ?)";
+        try {
+            jdbcTemplate.update(sql, medication.getBrandName(), medication.getGenericName(), medication.getDrugClass(), medication.getSubCategory());
+            logger.info("Successfully saved medication: {}", medication);
+        } catch (Exception e) {
+            logger.error("Error saving medication: {}", e.getMessage());
+            throw new RuntimeException("Failed to save medication", e);
+        }
     }
 
     @Override
     public void deleteMedication(int medicationId) {
         String sql = "DELETE FROM Medication WHERE medication_id = ?";
-        jdbcTemplate.update(sql, medicationId);
+        try {
+            jdbcTemplate.update(sql, medicationId);
+            logger.info("Successfully deleted medication with ID: {}", medicationId);
+        } catch (Exception e) {
+            logger.error("Error deleting medication with ID {}: {}", medicationId, e.getMessage());
+            throw new RuntimeException("Failed to delete medication", e);
+        }
     }
 
     @Override
     public List<Medication> getAllMedications() {
         String sql = "SELECT * FROM Medication";
-        return jdbcTemplate.query(sql, new MedicationRowMapper());
+        try {
+            List<Medication> medications = jdbcTemplate.query(sql, new MedicationRowMapper());
+            logger.info("Successfully fetched all medications");
+            return medications;
+        } catch (Exception e) {
+            logger.error("Error fetching medications: {}", e.getMessage());
+            throw new RuntimeException("Failed to fetch medications", e);
+        }
     }
 
 
@@ -62,45 +95,49 @@ public class JdbcMedicationDao implements MedicationDao {
     // Functional Methods for Manipulating Patient's Medication Lists
     @Override
     public MedicationList getMedicationListByPatientId(UUID patientId) {
+        String sql = "SELECT ml.medication_list_id, ml.patient_id, mi.updated_at AS mi_updated_at, ml.updated_at, mi.*, m.*, d.* " +
+                "FROM MedicationList ml " +
+                "LEFT JOIN MedicationInfo mi ON ml.medication_list_id = mi.medication_list_id " +
+                "LEFT JOIN Medication m ON mi.medication_id = m.medication_id " +
+                "LEFT JOIN Doctor d ON mi.prescribing_doctor_id = d.doctor_id " +
+                "WHERE ml.patient_id = ?";
         try {
-            // Query for the MedicationList details directly, including the medications
-            String sql = "SELECT ml.medication_list_id, ml.patient_id, mi.updated_at AS mi_updated_at, ml.updated_at, mi.*, m.*, d.* " +
-                    "FROM MedicationList ml " +
-                    "LEFT JOIN MedicationInfo mi ON ml.medication_list_id = mi.medication_list_id " +
-                    "LEFT JOIN Medication m ON mi.medication_id = m.medication_id " +
-                    "LEFT JOIN Doctor d ON mi.prescribing_doctor_id = d.doctor_id " +
-                    "WHERE ml.patient_id = ?";
-
-            return jdbcTemplate.queryForObject(sql, new MedicationListRowMapper(), patientId);
+            MedicationList medicationList = jdbcTemplate.queryForObject(sql, new MedicationListRowMapper(), patientId);
+            logger.info("Successfully fetched medication list for patient ID: {}", patientId);
+            return medicationList;
         } catch (EmptyResultDataAccessException e) {
-            throw new PatientNotFoundException("Patient ID " + patientId + " does not exist.");
+            logger.error("Patient with ID {} not found: {}", patientId, e.getMessage());
+            throw new PatientNotFoundException("Patient not found with ID: " + patientId);
+        } catch (Exception e) {
+            logger.error("Error fetching medication list for patient ID {}: {}", patientId, e.getMessage());
+            throw new RuntimeException("Failed to fetch medication list", e);
         }
     }
 
-
-
+    @Transactional
     @Override
     public void saveMedicationToMedList(UUID patientId, MedicationDTO medicationDTO) {
-        // Get the MedicationList ID for the patient
-        Integer medListId = getMedicationListId(patientId);
-
-        // Get or Insert Medication
-        Integer medicationId = getOrInsertMedication(medicationDTO);
-
-        // Insert MedicationInfo
-        insertMedicationInfo(medListId, medicationId, getDoctor(medicationDTO.
-                             getPrescribingDoctorId()), medicationDTO);
+        try {
+            Integer medListId = getMedicationListId(patientId);
+            Integer medicationId = getOrInsertMedication(medicationDTO);
+            insertMedicationInfo(medListId, medicationId, getDoctor(medicationDTO.getPrescribingDoctorId()), medicationDTO);
+            logger.info("Successfully saved medication for patient ID: {}", patientId);
+        } catch (Exception e) {
+            logger.error("Error saving medication for patient ID {}: {}", patientId, e.getMessage());
+            throw new RuntimeException("Failed to save medication to med list", e);
+        }
     }
 
     // Helper method to get MedicationList ID
     private Integer getMedicationListId(UUID patientId) {
         String sql = "SELECT medication_list_id FROM MedicationList WHERE patient_id = ?";
-    try {
-        return jdbcTemplate.queryForObject(sql, Integer.class, patientId);
-    } catch (EmptyResultDataAccessException e) {
-        throw new PatientNotFoundException("No patient found for patient ID: " + patientId);
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, patientId);
+        } catch (EmptyResultDataAccessException e) {
+            logger.error("Patient with ID {} not found: {}", patientId);
+            throw new PatientNotFoundException("No patient found for patient ID: " + patientId);
+        }
     }
-}
 
 
     // Helper method to get or insert Medication
@@ -109,9 +146,7 @@ public class JdbcMedicationDao implements MedicationDao {
         try {
             return jdbcTemplate.queryForObject(medIdSql, Integer.class, medicationDTO.getBrandName(), medicationDTO.getGenericName());
         } catch (EmptyResultDataAccessException e) {
-        // Insert the medication if not found
-            String insertMedSql = "INSERT INTO Medication (brand_name, generic_name, drug_class, sub_category) " +
-                    "VALUES (?, ?, ?, ?) RETURNING medication_id";
+            String insertMedSql = "INSERT INTO Medication (brand_name, generic_name, drug_class, sub_category) VALUES (?, ?, ?, ?) RETURNING medication_id";
             return jdbcTemplate.queryForObject(insertMedSql, Integer.class,
                     medicationDTO.getBrandName(), medicationDTO.getGenericName(),
                     medicationDTO.getDrugClass(), medicationDTO.getSubCategory());
@@ -123,6 +158,7 @@ public class JdbcMedicationDao implements MedicationDao {
         try {
             return jdbcTemplate.queryForObject(sql, UUID.class, doctorId);
         } catch (EmptyResultDataAccessException e) {
+            logger.error("Doctor with ID {} not found", doctorId);
             throw new DoctorNotFoundException("Doctor not found for ID: " + doctorId);
         }
     }
@@ -132,11 +168,17 @@ public class JdbcMedicationDao implements MedicationDao {
         String sql = "INSERT INTO MedicationInfo (medication_list_id, medication_id, dosage, frequency, route, " +
                 "is_prn, date_started, is_current, prescribing_doctor_id, pharmacy, comments, updated_at) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        jdbcTemplate.update(sql, medListId,
-                medicationId,
-                medicationDTO.getDosage(), medicationDTO.getFrequency(), medicationDTO.getRoute(),
-                medicationDTO.isPrn(), medicationDTO.getDateStarted(), medicationDTO.isCurrent(),
-                doctorId, medicationDTO.getPharmacy(), medicationDTO.getComments(), medicationDTO.getUpdatedAt());
+        try {
+            jdbcTemplate.update(sql, medListId,
+                    medicationId,
+                    medicationDTO.getDosage(), medicationDTO.getFrequency(), medicationDTO.getRoute(),
+                    medicationDTO.isPrn(), medicationDTO.getDateStarted(), medicationDTO.isCurrent(),
+                    doctorId, medicationDTO.getPharmacy(), medicationDTO.getComments(), medicationDTO.getUpdatedAt());
+            logger.info("Successfully inserted medication info");
+        } catch (Exception e) {
+            logger.error("Error inserting medication info: {}", e.getMessage());
+            throw new RuntimeException("Failed to insert medication info", e);
+        }
     }
 
     @Override
@@ -146,39 +188,61 @@ public class JdbcMedicationDao implements MedicationDao {
                         "date_started = ?, is_current = ?, prescribing_doctor_id = ?, " +
                         "pharmacy = ?, comments = ?, updated_at = ? " +
                      "WHERE medication_info_id = ?";
-        jdbcTemplate.update(sql,
-                medicationDTO.getDosage(),
-                medicationDTO.getFrequency(),
-                medicationDTO.getRoute(),
-                medicationDTO.isPrn(),
-                medicationDTO.getDateStarted(),
-                medicationDTO.isCurrent(),
-                medicationDTO.getPrescribingDoctorId(),
-                medicationDTO.getPharmacy(),
-                medicationDTO.getComments(),
-                medicationDTO.getUpdatedAt(),
-                medicationDTO.getMedicationInfoId()
-        );
+        try {
+            jdbcTemplate.update(sql,
+                    medicationDTO.getDosage(),
+                    medicationDTO.getFrequency(),
+                    medicationDTO.getRoute(),
+                    medicationDTO.isPrn(),
+                    medicationDTO.getDateStarted(),
+                    medicationDTO.isCurrent(),
+                    medicationDTO.getPrescribingDoctorId(),
+                    medicationDTO.getPharmacy(),
+                    medicationDTO.getComments(),
+                    medicationDTO.getUpdatedAt(),
+                    medicationDTO.getMedicationInfoId()
+            );
+            logger.info("Successfully updated medication info ID: {}", medicationDTO.getMedicationInfoId());
+        } catch (Exception e) {
+            logger.error("Error updating medication info ID {}: {}", medicationDTO.getMedicationInfoId(), e.getMessage());
+            throw new RuntimeException("Failed to update medication info", e);
+        }
     }
 
 
     @Override
     public void deleteMedicationFromMedList(int medicationInfoId) {
         String sql = "DELETE FROM MedicationInfo WHERE medication_info_id = ?";
-        jdbcTemplate.update(sql, medicationInfoId);
+        try {
+            jdbcTemplate.update(sql, medicationInfoId);
+            logger.info("Successfully deleted medication info ID: {}", medicationInfoId);
+        } catch (Exception e) {
+            logger.error("Error deleting medication info ID {}: {}", medicationInfoId, e.getMessage());
+            throw new RuntimeException("Failed to delete medication info", e);
+        }
     }
 
     @Override
     public MedicationDTO getMedicationFromMedListById(int medicationInfoId) {
-    String sql = "SELECT mi.medication_info_id, m.medication_id, mi.prescribing_doctor_id, m.brand_name, m.generic_name, " +
-                    "m.drug_class, m.sub_category, mi.dosage, mi.frequency, mi.route, mi.is_prn, " +
-                    "mi.date_started, mi.is_current, d.doctor_id, " +
-                    "mi.pharmacy, mi.comments, mi.updated_at " +
-                 "FROM MedicationInfo mi " +
-                    "JOIN Medication m ON mi.medication_id = m.medication_id " +
-                    "LEFT JOIN Doctor d ON mi.prescribing_doctor_id = d.doctor_id " +
-                "WHERE mi.medication_info_id = ?";
-        return jdbcTemplate.queryForObject(sql, new MedicationDTORowMapper(), medicationInfoId);
+        String sql = "SELECT mi.medication_info_id, m.medication_id, mi.prescribing_doctor_id, " +
+                        "m.brand_name, m.generic_name, m.drug_class, m.sub_category, mi.dosage, " +
+                        "mi.frequency, mi.route, mi.is_prn, mi.date_started, mi.is_current, " +
+                        "d.doctor_id, mi.pharmacy, mi.comments, mi.updated_at " +
+                     "FROM MedicationInfo mi " +
+                        "JOIN Medication m ON mi.medication_id = m.medication_id " +
+                        "LEFT JOIN Doctor d ON mi.prescribing_doctor_id = d.doctor_id " +
+                     "WHERE mi.medication_info_id = ?";
+        try {
+            MedicationDTO medication = jdbcTemplate.queryForObject(sql, new MedicationDTORowMapper(), medicationInfoId);
+            logger.info("Successfully fetched medication info ID: {}", medicationInfoId);
+            return medication;
+        } catch (EmptyResultDataAccessException e) {
+            logger.error("Medication info ID {} not found: {}", medicationInfoId, e.getMessage());
+            throw new NoSuchElementException("Medication info not found with ID: " + medicationInfoId);
+        } catch (Exception e) {
+            logger.error("Error fetching medication info ID {}: {}", medicationInfoId, e.getMessage());
+            throw new RuntimeException("Failed to fetch medication info", e);
+        }
     }
 
     // RowMapper for Medication
